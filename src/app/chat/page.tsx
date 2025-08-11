@@ -1,4 +1,3 @@
-// src/app/chat/page.tsx
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -12,22 +11,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 )
 
-function hasCompleteQuizRow(row: any | null): boolean {
-  if (!row) return false
-  const { smartness_score, personality_type, dominant_thinking_style, love_language, deep_dive } = row
-  const hasScore = smartness_score !== null && smartness_score !== undefined && String(smartness_score).trim() !== ''
-  const hasAll =
-    !!(personality_type && String(personality_type).trim()) &&
-    !!(dominant_thinking_style && String(dominant_thinking_style).trim()) &&
-    !!(love_language && String(love_language).trim()) &&
-    !!(deep_dive && String(deep_dive).trim())
-  return hasScore && hasAll
-}
-
 export default function ChatPage() {
   const router = useRouter()
-
-  // state
   const [userId, setUserId] = useState<string | null>(null)
   const [hasQuiz, setHasQuiz] = useState<boolean | null>(null)
   const [loadingQuizCheck, setLoadingQuizCheck] = useState(true)
@@ -40,19 +25,15 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
 
-  // scroll to bottom on updates
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [msgs, loading])
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs, loading])
 
-  // URL flags: /chat?quiz=1 to force-show CTA
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setForceQuiz(new URLSearchParams(window.location.search).has('quiz'))
     }
   }, [])
 
-  // auth + quiz check
+  // AUTH + QUIZ CHECK (uses quiz_runs)
   useEffect(() => {
     const init = async () => {
       const { data } = await supabase.auth.getSession()
@@ -62,18 +43,19 @@ export default function ChatPage() {
       setUserId(id)
 
       if (id) {
-        const { data: rows, error } = await supabase
-          .from('quiz_results')
-          .select('smartness_score, personality_type, dominant_thinking_style, love_language, deep_dive, created_at')
+        // Just count rows; we don’t assume any specific columns exist
+        const { count, error } = await supabase
+          .from('quiz_runs')
+          .select('user_id', { head: true, count: 'exact' })
           .eq('user_id', id)
-          .order('created_at', { ascending: false })
-          .limit(1)
 
-        const latest = rows?.[0] ?? null
-        const complete = !error && hasCompleteQuizRow(latest)
-        // Debug in console (helpful on prod):
-        console.log('quiz check', { id, complete, latest, error })
-        setHasQuiz(complete)
+        console.log('quiz_runs check', { id, count, error })
+        if (error) {
+          // On error, show the CTA rather than hide it
+          setHasQuiz(false)
+        } else {
+          setHasQuiz(!!(count && count > 0))
+        }
       } else {
         setHasQuiz(false)
       }
@@ -113,7 +95,6 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-teal-50 via-emerald-100 to-teal-200">
-      {/* Top glow / depth */}
       <div className="pointer-events-none absolute inset-0 [mask-image:radial-gradient(40%_30%_at_50%_0%,black,transparent)] bg-[radial-gradient(80%_50%_at_50%_-10%,rgba(20,184,166,.25),transparent_60%)]" />
 
       {/* Header */}
@@ -121,8 +102,6 @@ export default function ChatPage() {
         <div className="mx-auto max-w-3xl px-4 py-3 flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shadow-sm shadow-teal-600/20">K</div>
           <div className="text-xl font-extrabold tracking-tight text-teal-950">KnowYourself.ai</div>
-
-          {/* always-visible link to quiz */}
           <button
             onClick={() => router.push('/quiz')}
             className="ml-auto rounded-lg border border-teal-300/80 bg-white/70 px-3 py-1.5 text-xs font-semibold text-teal-900 hover:bg-teal-50 hover:border-teal-400 transition shadow-sm"
@@ -134,7 +113,6 @@ export default function ChatPage() {
 
       {/* Main */}
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 space-y-4">
-        {/* Quiz CTA */}
         {!loadingQuizCheck && (forceQuiz || hasQuiz !== true) && (
           <div className="relative overflow-hidden rounded-2xl border border-emerald-300/60 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
             <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-emerald-200/60 blur-3xl" />
@@ -173,11 +151,7 @@ export default function ChatPage() {
                 }
               >
                 <div className="whitespace-pre-wrap leading-relaxed text-[15px]">{m.content}</div>
-                <div
-                  className={
-                    'mt-1 text-[10px] ' + (m.role === 'user' ? 'text-teal-100/80' : 'text-slate-500')
-                  }
-                >
+                <div className={'mt-1 text-[10px] ' + (m.role === 'user' ? 'text-teal-100/80' : 'text-slate-500')}>
                   {new Date().toLocaleTimeString()}
                 </div>
               </div>
@@ -214,9 +188,7 @@ export default function ChatPage() {
               Send
             </button>
           </div>
-          <div className="mt-2 text-xs text-teal-900/80">
-            Your chats are saved to improve replies next time
-          </div>
+          <div className="mt-2 text-xs text-teal-900/80">Your chats are saved to improve replies next time</div>
         </div>
       </footer>
     </div>
