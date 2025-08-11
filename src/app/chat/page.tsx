@@ -1,3 +1,4 @@
+// src/app/chat/page.tsx
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -11,15 +12,27 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 )
 
+function hasCompleteQuizRow(row: any | null): boolean {
+  if (!row) return false
+  const { smartness_score, personality_type, dominant_thinking_style, love_language, deep_dive } = row
+  const hasScore = smartness_score !== null && smartness_score !== undefined && String(smartness_score).trim() !== ''
+  const hasAll =
+    !!(personality_type && String(personality_type).trim()) &&
+    !!(dominant_thinking_style && String(dominant_thinking_style).trim()) &&
+    !!(love_language && String(love_language).trim()) &&
+    !!(deep_dive && String(deep_dive).trim())
+  return hasScore && hasAll
+}
+
 export default function ChatPage() {
   const router = useRouter()
+
+  // ===== state =====
   const [userId, setUserId] = useState<string | null>(null)
-
-  // quiz state
-  const [hasQuiz, setHasQuiz] = useState<boolean | null>(null)
+  const [hasQuiz, setHasQuiz] = useState<boolean | null>(null)       // null = unknown yet
   const [loadingQuizCheck, setLoadingQuizCheck] = useState(true)
+  const [forceQuiz, setForceQuiz] = useState(false)                  // /chat?quiz=1 forces CTA (for testing)
 
-  // chat state
   const [msgs, setMsgs] = useState<Msg[]>([
     { role: 'assistant', content: 'Welcome to KnowYourself.ai. Ask me anything. Your quiz profile helps me personalize answers.' }
   ])
@@ -27,11 +40,19 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
 
+  // scroll to bottom on updates
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [msgs, loading])
 
-  // auth + quiz check
+  // URL override (for prod testing): /chat?quiz=1
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setForceQuiz(new URLSearchParams(window.location.search).has('quiz'))
+    }
+  }, [])
+
+  // ===== auth + quiz check (overwrite your old effect with this entire block) =====
   useEffect(() => {
     const init = async () => {
       // ensure session
@@ -41,20 +62,32 @@ export default function ChatPage() {
       const id = session?.user?.id || null
       setUserId(id)
 
-      // check quiz only if we have a user
       if (id) {
+        // get the latest row and decide if it's actually complete
         const { data: rows, error } = await supabase
           .from('quiz_results')
-          .select('id')
+          .select('smartness_score, personality_type, dominant_thinking_style, love_language, deep_dive, created_at')
           .eq('user_id', id)
+          .order('created_at', { ascending: false })
           .limit(1)
 
-        if (!error) setHasQuiz(Boolean(rows && rows.length))
+        const latest = rows?.[0] ?? null
+        const complete = !error && hasCompleteQuizRow(latest)
+
+        // TEMP console so we can see what prod thinks (open DevTools > Console)
+        console.log('quiz check', { id, complete, latest, error })
+
+        setHasQuiz(complete)
+      } else {
+        // no user yet -> show CTA
+        setHasQuiz(false)
       }
+
       setLoadingQuizCheck(false)
     }
     init()
   }, [])
+  // ===== end auth + quiz check =====
 
   const send = async () => {
     if (!text.trim() || !userId) return
@@ -92,7 +125,7 @@ export default function ChatPage() {
           <div className="h-9 w-9 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm">K</div>
           <div className="text-xl font-extrabold tracking-tight text-neutral-900">KnowYourself.ai</div>
 
-          {/* always-visible escape hatch to quiz */}
+          {/* Always-visible link to quiz */}
           <button
             onClick={() => router.push('/quiz')}
             className="ml-auto rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-semibold hover:bg-neutral-100 transition"
@@ -104,23 +137,31 @@ export default function ChatPage() {
 
       {/* Main */}
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 space-y-4">
-        {/* Quiz CTA: only render after we finish checking; show when user has no results */}
-        {!loadingQuizCheck && hasQuiz !== true && (
+        {/* ===== QUIZ CARD (this is the “quiz card in JSX” I referred to) ===== */}
+        {/* Show it unless we KNOW they already have a complete quiz, or while forced via ?quiz=1 */}
+        {!loadingQuizCheck && (forceQuiz || hasQuiz !== true) && (
           <div className="rounded-2xl border border-neutral-200 bg-white/95 shadow-md p-5">
-            <div className="text-base text-neutral-900 font-semibold">Take the 3-minute quiz</div>
+            <div className="text-base text-neutral-900 font-semibold">Take the 3-minute intake</div>
             <div className="text-sm text-neutral-700 mt-1">
               Your profile seeds memory so answers feel tailored from message one.
             </div>
-            <div className="mt-4">
+            <div className="mt-4 flex gap-2">
               <button
                 onClick={() => router.push('/quiz')}
                 className="rounded-xl bg-black text-white px-5 py-2.5 text-sm font-semibold shadow-sm hover:opacity-90 active:scale-[.99] transition"
               >
                 Start quiz
               </button>
+              <button
+                onClick={() => setHasQuiz(true)} // let user hide it if they truly don’t want it
+                className="rounded-xl border border-neutral-300 px-5 py-2.5 text-sm font-semibold hover:bg-neutral-100 transition"
+              >
+                Dismiss
+              </button>
             </div>
           </div>
         )}
+        {/* ===== END QUIZ CARD ===== */}
 
         {/* Messages */}
         <div className="space-y-3">
