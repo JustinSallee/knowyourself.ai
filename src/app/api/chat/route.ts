@@ -8,8 +8,6 @@ export const dynamic = 'force-dynamic'
 
 type Role = 'user' | 'assistant' | 'system'
 
-/* ---------- helpers (stateless; pass clients in) ---------- */
-
 async function loadOrCreateConversation(supabase: SupabaseClient, userId: string) {
   const { data: found, error } = await supabase
     .from('conversations')
@@ -82,7 +80,6 @@ function parseSmartness(input: unknown): number | null {
 }
 
 async function seedMemoryFromQuiz(supabase: SupabaseClient, userId: string) {
-  // skip if any durable memories already exist
   const existing = await supabase
     .from('memories')
     .select('id')
@@ -92,7 +89,6 @@ async function seedMemoryFromQuiz(supabase: SupabaseClient, userId: string) {
   if (existing.error) throw existing.error
   if ((existing.data ?? []).length > 0) return
 
-  // exact field names you shared earlier
   const quiz = await supabase
     .from('quiz_results')
     .select('smartness_score, personality_type, dominant_thinking_style, love_language, deep_dive, created_at')
@@ -191,8 +187,6 @@ async function updateMemories(
   }
 }
 
-/* ---------- route handler ---------- */
-
 export async function POST(req: NextRequest) {
   try {
     const { userId, text } = await req.json()
@@ -200,20 +194,18 @@ export async function POST(req: NextRequest) {
       return new Response('Missing userId or text', { status: 400 })
     }
 
-    // read envs INSIDE the handler so the build never crashes
+    // Read envs INSIDE the handler only
     const openaiKey = process.env.OPENAI_API_KEY
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!openaiKey || !supabaseUrl || !supabaseAnon) {
-      // do not crash the build; only fail this request
       return new Response('Server env not configured', { status: 500 })
     }
 
     const openai = new OpenAI({ apiKey: openaiKey })
     const supabase = createClient(supabaseUrl, supabaseAnon)
 
-    // seed user memory from quiz once
     await seedMemoryFromQuiz(supabase, userId)
 
     const convo = await loadOrCreateConversation(supabase, userId)
@@ -235,7 +227,6 @@ Be direct, concise, and kind. Avoid headings in short replies.`
       { role: 'user' as Role, content: text }
     ]
 
-    // store user message
     await storeMessage(supabase, convo.id, userId, 'user', text)
 
     const completion = await openai.chat.completions.create({
@@ -247,7 +238,6 @@ Be direct, concise, and kind. Avoid headings in short replies.`
     const reply = completion.choices?.[0]?.message?.content || 'Sorry, I could not think of a reply.'
     await storeMessage(supabase, convo.id, userId, 'assistant', reply)
 
-    // learn from this turn (fire-and-forget)
     updateMemories(openai, supabase, userId, text, reply).catch(() => {})
 
     return new Response(JSON.stringify({ reply }), {
