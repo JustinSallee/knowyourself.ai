@@ -1,165 +1,59 @@
-'use client'
+'use client';
 
-import { useEffect, useRef, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-import { useRouter } from 'next/navigation'
-
-type Msg = { role: 'user'|'assistant', content: string, created_at?: string }
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-)
-
-export default function KnowYourself() {
-  const router = useRouter()
-  const [userId, setUserId] = useState<string | null>(null)
-  const [hasQuiz, setHasQuiz] = useState<boolean | null>(null)
-  const [msgs, setMsgs] = useState<Msg[]>([
-    { role: 'assistant', content: 'Welcome to KnowYourself.ai. Ask me anything. Your quiz profile helps me personalize answers.' }
-  ])
-  const [text, setText] = useState('')
-  const [loading, setLoading] = useState(false)
-  const endRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [msgs, loading])
-
-  useEffect(() => {
-    const init = async () => {
-      const { data } = await supabase.auth.getSession()
-      if (!data.session) await supabase.auth.signInAnonymously()
-      const session = (await supabase.auth.getSession()).data.session
-      const id = session?.user?.id || null
-      setUserId(id)
-
-      if (id) {
-        const { data: check } = await supabase
-          .from('quiz_results')
-          .select('id')
-          .eq('user_id', id)
-          .limit(1)
-        setHasQuiz(Boolean(check && check.length))
-      }
-    }
-    init()
-  }, [])
-
-  const send = async () => {
-    if (!text.trim() || !userId) return
-    const userText = text.trim()
-    setText('')
-    setMsgs(prev => [...prev, { role: 'user', content: userText }])
-    setLoading(true)
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, text: userText })
-      })
-      const json = await res.json()
-      setMsgs(prev => [...prev, { role: 'assistant', content: json.reply }])
-    } catch {
-      setMsgs(prev => [...prev, { role: 'assistant', content: 'Error talking to the server.' }])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const onKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      send()
-    }
-  }
-
+export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-[radial-gradient(1200px_600px_at_0%_0%,#f5f5f5_0%,#eaeaea_45%,#e5e7eb_100%)]">
-      {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto max-w-3xl px-4 py-3 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm">K</div>
-          <div className="text-xl font-extrabold tracking-tight text-neutral-900">KnowYourself.ai</div>
-          <div className="ml-auto text-xs text-neutral-600">private beta</div>
+    <div className="space-y-8">
+      {/* Quiz card */}
+      <section className="rounded-2xl border border-black/10 bg-white/80 p-8 shadow-xl backdrop-blur">
+        <h2 className="text-2xl font-semibold">Take the 3 minute quiz</h2>
+        <p className="mt-2 text-slate-600">
+          Your profile seeds memory so answers feel tailored from message one.
+        </p>
+        <div className="mt-5">
+          <button
+            className="inline-flex items-center gap-2 rounded-xl px-6 py-2.5 font-semibold
+                       text-white shadow-md active:scale-[0.99]
+                       bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-amber-500
+                       hover:from-indigo-400 hover:via-fuchsia-400 hover:to-amber-400">
+            Start quiz
+          </button>
         </div>
-      </header>
+      </section>
 
-      {/* Main */}
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 space-y-4">
-        {hasQuiz === false && (
-          <div className="rounded-2xl border border-neutral-200 bg-white/95 shadow-md p-5">
-            <div className="text-base text-neutral-900 font-semibold">Take the 3-minute quiz</div>
-            <div className="text-sm text-neutral-700 mt-1">
-              Your profile seeds memory so answers feel tailored from message one.
-            </div>
-            <div className="mt-4">
-              <button
-                onClick={() => router.push('/quiz')}
-                className="rounded-xl bg-black text-white px-5 py-2.5 text-sm font-semibold shadow-sm hover:opacity-90 active:scale-[.99] transition"
-              >
-                Start quiz
-              </button>
-            </div>
-          </div>
-        )}
+      {/* First assistant bubble */}
+      <section className="rounded-2xl border border-black/10 bg-white/80 p-6 shadow-lg backdrop-blur">
+        <p className="leading-relaxed">
+          Welcome to KnowYourself.ai. Ask me anything. Your quiz profile helps me
+          personalize answers.
+        </p>
+        <div className="mt-3 text-xs opacity-60">now</div>
+      </section>
 
-        <div className="space-y-3">
-          {msgs.map((m, i) => (
-            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div
-                className={
-                  m.role === 'user'
-                    ? 'bg-black text-white rounded-2xl px-4 py-3 shadow-md max-w-[80%]'
-                    : 'bg-white text-neutral-900 border border-neutral-200 rounded-2xl px-4 py-3 shadow-sm max-w-[80%]'
-                }
-              >
-                <div className="whitespace-pre-wrap leading-relaxed text-[15px]">{m.content}</div>
-                <div
-                  className={
-                    'mt-1 text-[10px] ' + (m.role === 'user' ? 'text-neutral-300' : 'text-neutral-500')
-                  }
-                >
-                  {new Date().toLocaleTimeString()}
-                </div>
-              </div>
-            </div>
-          ))}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-white border border-neutral-200 rounded-2xl px-4 py-3 shadow-sm text-neutral-700">
-                typing…
-              </div>
-            </div>
-          )}
-          <div ref={endRef} />
-        </div>
-      </main>
-
-      {/* Composer */}
-      <footer className="sticky bottom-0 border-t border-neutral-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto max-w-3xl px-4 py-3">
-          <div className="flex items-end gap-2">
-            <textarea
-              value={text}
-              onChange={e => setText(e.target.value)}
-              onKeyDown={onKey}
+      {/* Input bar */}
+      <section className="sticky bottom-6">
+        <div className="rounded-2xl border border-black/10 bg-white/80 p-3 shadow-xl backdrop-blur">
+          <form
+            className="flex items-center gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              // TODO hook into your existing send logic
+              alert('Wire this to your send handler');
+            }}
+          >
+            <input
               placeholder="Ask anything"
-              className="flex-1 h-14 resize-none rounded-xl border border-neutral-300 bg-neutral-50 focus:bg-white outline-none p-3 text-neutral-900 placeholder-neutral-600 shadow-sm"
+              className="flex-1 h-12 rounded-xl border border-black/10 bg-white/90 px-4 outline-none focus:ring-4 focus:ring-indigo-200"
             />
             <button
-              onClick={send}
-              className="rounded-xl bg-black text-white px-5 py-3 text-sm font-semibold shadow-sm hover:opacity-90 active:scale-[.99] transition disabled:opacity-50"
-              disabled={loading || !text.trim()}
-            >
+              type="submit"
+              className="h-12 rounded-xl px-5 font-semibold text-white
+                         bg-gradient-to-r from-cyan-500 to-indigo-500
+                         hover:from-cyan-400 hover:to-indigo-400 active:scale-[0.99]">
               Send
             </button>
-          </div>
-          <div className="mt-2 text-xs text-neutral-700">
-            Your chats are saved to improve replies next time
-          </div>
+          </form>
         </div>
-      </footer>
+      </section>
     </div>
-  )
+  );
 }

@@ -1,30 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Your CSS vars (keep if you want) */
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-/* Optional dark scheme vars (does nothing unless you use them) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-/* Let page gradients show; don’t force solid white */
-html, body, #__next { height: 100%; }
-body {
-  background: transparent;      /* important: don't set solid white here */
-  color: #0f172a;               /* slate-900-ish */
-}
-
-/* Nice focus ring for inputs/buttons */
-:focus-visible {
-  outline: 2px solid rgba(13, 148, 136, 0.6); /* teal-600 ring */
-  outline-offset: 2px;
+@layer base {
+  html, body, #__next { height: 100%; }
+  body { @apply bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-slate-100; }
 }
