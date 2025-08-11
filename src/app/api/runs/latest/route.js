@@ -1,30 +1,15 @@
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
-
+// src/app/api/runs/latest/route.js
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function GET(req) {
+import { NextResponse } from "next/server";
+
+export async function GET() {
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId") || "anon";
-
-    let query = supabaseAdmin.from("quiz_runs").select("*").order("created_at", { ascending: false }).limit(3);
-
-    if (userId === "anon") {
-      query = query.eq("user_label", "anon").is("user_id", null);
-    } else {
-      query = query.eq("user_id", userId);
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      console.error("[KY] latest runs error:", error);
-      return NextResponse.json({ ok: false, runs: [], error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ ok: true, runs: data || [] });
+    // Just verify server env is wired
+    const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+    return NextResponse.json({ ok: true, env: { serviceKey: hasServiceKey } });
   } catch (e) {
-    console.error("[KY] latest runs catch:", e);
-    return NextResponse.json({ ok: false, runs: [] }, { status: 500 });
+    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
   }
 }
