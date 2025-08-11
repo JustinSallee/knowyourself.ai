@@ -1,7 +1,8 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabaseBrowser } from "../lib/supabaseClient";
 
 /* ---------------- Helpers ---------------- */
 
@@ -364,7 +365,33 @@ function localWriteup(totals, smartPct, seconds, loveTotals) {
 /* ---------------- Component ---------------- */
 
 export default function Page() {
-  // Core state
+  // Supabase (browser) client
+  const supabase = useMemo(() => getSupabaseBrowser(), []);
+
+  // Auth
+  const [user, setUser] = useState(null);
+  const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user || null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      setUser(session?.user || null);
+    });
+    return () => { sub.subscription.unsubscribe(); };
+  }, [supabase]);
+
+  async function signIn() {
+    if (!email) return alert("Enter your email first");
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin }
+    });
+    if (error) alert(error.message);
+    else alert("Sign-in link sent! Check your email.");
+  }
+  async function signOut() { await supabase.auth.signOut(); }
+
+  // Quiz state
   const [screen, setScreen] = useState("intro"); // intro | quiz | results
   const [index, setIndex] = useState(0);
   const [totals, setTotals] = useState({ smart: 0, analytic: 0, creative: 0, practical: 0, social: 0, relational: 0 });
@@ -380,37 +407,15 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Auth
-  const [user, setUser] = useState(null);
-  const [email, setEmail] = useState("");
-
-  // Auth wiring
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user || null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
-      setUser(session?.user || null);
-    });
-    return () => { sub.subscription.unsubscribe(); };
-  }, []);
-
-  async function signIn() {
-    if (!email) return alert("Enter your email first");
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin }
-    });
-    if (error) alert(error.message);
-    else alert("Magic link sent! Check your email.");
-  }
-  async function signOut() { await supabase.auth.signOut(); }
-
-  // Quiz control
   const startTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     setSeconds(0);
     timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
   };
-  const stopTimer = () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
+  const stopTimer = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  };
+
   const startQuiz = () => { setScreen("quiz"); startTimer(); };
 
   const handleAnswer = (scores) => {
@@ -434,11 +439,12 @@ export default function Page() {
 
   const finished = index >= QUESTIONS.length;
   const smartPct = useMemo(
-    () => Math.max(0, Math.min(100, Math.round((totals.smart / MAX_SMART) * 100))),
+    () => Math.max(0, Math.min(100, Math.round((totals.smart / MAX_SMART) * 100)))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [totals.smart]
-  );
+  ;
 
-  // On finish: stop timer, call AI, then save
+  // On finish: stop timer, call AI, then save the run
   useEffect(() => {
     if (!finished || screen === "results") return;
 
@@ -447,12 +453,13 @@ export default function Page() {
     setLoading(true);
     setErrorMsg("");
 
-    log("Finish → calling /api/generate with", { smartPct, seconds, totals, loveTotals, userId: user?.id || "anon" });
+    const userId = user?.id ? user.id : "anon";
+    log("Finish → calling /api/generate with", { smartPct, seconds, totals, loveTotals, userId });
 
     fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ totals, loveTotals, seconds, smartPct, userId: user?.id || "anon" })
+      body: JSON.stringify({ totals, loveTotals, seconds, smartPct, userId })
     })
       .then(async (r) => {
         log("generate status:", r.status);
@@ -461,15 +468,15 @@ export default function Page() {
         setAiText(ai);
         log("AI text length:", ai.length);
 
-        await saveRun({ userId: user?.id || "anon", smartPct, seconds, totals, loveTotals, aiText: ai });
+        return saveRun({ userId, smartPct, seconds, totals, loveTotals, aiText: ai });
       })
       .catch(async (err) => {
         log("generate failed:", err?.message || err);
         setErrorMsg("AI write-up unavailable. Showing a local summary.");
-        await saveRun({ userId: user?.id || "anon", smartPct, seconds, totals, loveTotals, aiText: "" });
+        await saveRun({ userId, smartPct, seconds, totals, loveTotals, aiText: "" });
       })
       .finally(() => setLoading(false));
-  }, [finished, screen, totals, loveTotals, seconds, smartPct, user?.id]);
+  }, [finished, screen, totals, loveTotals, seconds, smartPct, user]);
 
   const restart = () => {
     stopTimer();
@@ -485,177 +492,8 @@ export default function Page() {
 
   const progress = screen === "quiz" ? Math.min(1, index / QUESTIONS.length) : 0;
 
-  // Styles
+  // Styles (dark)
   const ui = {
     page: { minHeight: "100vh", background: "#0b0f1a", color: "#e5e7eb", display: "flex", alignItems: "center" },
     shell: { width: "100%", maxWidth: 900, margin: "0 auto", padding: 20, fontFamily: "system-ui, Arial" },
-    card: { background: "#0f172a", border: "1px solid #273449", borderRadius: 18, padding: 28, boxShadow: "0 12px 30px rgba(0,0,0,0.5)" },
-    titleRow: { display: "flex", alignItems: "center", gap: 12, marginBottom: 6 },
-    logo: { width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg,#22d3ee,#60a5fa)" },
-    brand: { fontSize: 20, fontWeight: 700, letterSpacing: 0.5 },
-    h1: { margin: "6px 0 0 0", fontSize: 28, color: "#f8fafc" },
-    sub: { color: "#cbd5e1", marginTop: 6 },
-    barWrap: { height: 10, background: "#1f2937", borderRadius: 999, overflow: "hidden", margin: "16px 0 12px" },
-    bar: { width: `${Math.round(progress * 100)}%`, height: "100%", background: "linear-gradient(90deg,#22d3ee,#60a5fa)" },
-    q: { fontSize: 20, margin: "20px 0", color: "#f3f4f6" },
-    btn: { padding: "12px 16px", borderRadius: 12, border: "1px solid #334155", cursor: "pointer", textAlign: "left", fontSize: 16, background: "#111827", color: "#e5e7eb", transition: "transform 80ms ease, boxShadow 120ms ease" },
-    btnHover: { boxShadow: "0 12px 24px rgba(0,0,0,0.45)", transform: "translateY(-1px)", background: "#1f2937", borderColor: "#475569" },
-    cta: { padding: "14px 18px", borderRadius: 12, border: "1px solid #334155", background: "linear-gradient(90deg,#22d3ee,#60a5fa)", color: "#0b0f1a", fontWeight: 700, cursor: "pointer", width: "100%", fontSize: 18 },
-    tag: { display: "inline-block", padding: "6px 10px", borderRadius: 999, border: "1px solid #334155", background: "#0b1220", fontSize: 13, color: "#cbd5e1" }
-  };
-
-  // Intro
-  if (screen === "intro") {
-    return (
-      <div style={ui.page}>
-        <div style={ui.shell}>
-          <div style={ui.card}>
-            <div style={ui.titleRow}>
-              <div style={ui.logo} />
-              <div style={ui.brand}>KnowYourself.ai</div>
-            </div>
-
-            {/* Auth UI */}
-            <div style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              {user ? (
-                <>
-                  <span style={{ opacity: 0.8, fontSize: 13 }}>Signed in</span>
-                  <button onClick={signOut} style={{ ...ui.btn, padding: "8px 10px" }}>Sign out</button>
-                </>
-              ) : (
-                <>
-                  <input
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #334155", background: "#0b1220", color: "#e5e7eb" }}
-                  />
-                  <button onClick={signIn} style={{ ...ui.btn, padding: "8px 10px" }}>Sign in (magic link)</button>
-                </>
-              )}
-            </div>
-
-            <h1 style={ui.h1}>Smartness Score 45</h1>
-            <p style={ui.sub}>
-              Forty-five fast questions across thinking, habits, and relationships.
-              Get your base results instantly, keep using AI as you already do and get progressive ever-evolving insight into who you really are!
-            </p>
-            <button style={{ ...ui.cta, marginTop: 16 }} onClick={startQuiz}>Start quiz</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Quiz
-  if (screen === "quiz" && !finished) {
-    const q = QUESTIONS[index];
-    return (
-      <div style={ui.page}>
-        <div style={ui.shell}>
-          <div style={ui.card}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={ui.logo} />
-                <div style={ui.brand}>KnowYourself.ai</div>
-              </div>
-              <div style={{ fontVariantNumeric: "tabular-nums", opacity: 0.9 }}>
-                ⏱ {mmss(seconds)}
-              </div>
-            </div>
-            <h1 style={ui.h1}>Smartness Score 45</h1>
-            <div style={ui.sub}>Question {index + 1} of {QUESTIONS.length}</div>
-            <div style={ui.barWrap}><div style={ui.bar} /></div>
-            <div style={ui.q}>{q.text}</div>
-            <div style={{ display: "grid", gap: 12 }}>
-              {q.options.map((o, i) => {
-                const style = i === hoverIdx ? { ...ui.btn, ...ui.btnHover } : ui.btn;
-                return (
-                  <button
-                    key={i}
-                    onMouseEnter={() => setHoverIdx(i)}
-                    onMouseLeave={() => setHoverIdx(-1)}
-                    onClick={() => handleAnswer(o.scores)}
-                    style={style}
-                  >
-                    {o.text}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Results
-  const type = pickThinkingType(totals);
-  const { label: loveLabel } = dominantLove(loveTotals);
-  const fallbackParas = localWriteup(totals, smartPct, seconds, loveTotals);
-  const paragraphs = aiText ? aiText.split(/\n{2,}/).map(s => s.trim()).filter(Boolean) : fallbackParas;
-
-  return (
-    <div style={ui.page}>
-      <div style={ui.shell}>
-        <div style={{ ...ui.card, textAlign: "left" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={ui.logo} />
-              <div style={ui.brand}>KnowYourself.ai</div>
-            </div>
-            <div style={{ fontVariantNumeric: "tabular-nums", opacity: 0.8 }}>
-              Time: {mmss(seconds)}
-            </div>
-          </div>
-
-          <h1 style={ui.h1}>Your Results</h1>
-
-          <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", marginTop: 14 }}>
-            <div style={ui.tag}><strong>Smartness Score:</strong> {smartPct}/100</div>
-            <div style={ui.tag}><strong>Personality Type:</strong> {type}</div>
-            <div style={ui.tag}><strong>Dominant Thinking Style:</strong> {type}</div>
-            <div style={ui.tag}><strong>Love Language:</strong> {loveLabel}</div>
-          </div>
-
-          <div style={{ height: 1, background: "#223047", margin: "18px 0" }} />
-
-          <h2 style={{ margin: "0 0 8px 0", fontSize: 18, color: "#e5e7eb" }}>Deep Dive</h2>
-          {loading && <p style={{ color: "#cbd5e1" }}>Generating your write-up…</p>}
-          {errorMsg && <p style={{ color: "#93c5fd" }}>{errorMsg}</p>}
-          {paragraphs.map((p, i) => (
-            <p key={i} style={{ color: "#cbd5e1", fontSize: 18, lineHeight: 1.6, marginTop: i === 0 ? 6 : 12 }}>
-              {p}
-            </p>
-          ))}
-
-          <div style={{ height: 1, background: "#223047", margin: "18px 0" }} />
-          <h2 style={{ margin: "0 0 8px 0", fontSize: 18, color: "#e5e7eb" }}>Extras (Trial)</h2>
-          <ul style={{ margin: 0, paddingLeft: 18, color: "#cbd5e1", lineHeight: 1.6 }}>
-            <li><strong>Workplace Strengths:</strong> steady signal, bias to progress, keeps priorities clean.</li>
-            <li><strong>Biggest Blind Spot:</strong> over-committing when clarity feels high; guard your calendar.</li>
-            <li><strong>Ideal Partner Personality:</strong> someone who values simple consistency and honest repairs.</li>
-            <li><strong>Personal Growth Focus:</strong> shorter planning loops you actually review.</li>
-          </ul>
-
-          <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-            <button
-              onClick={async () => {
-                const text = paragraphs.join("\n\n");
-                try {
-                  if (navigator.share) await navigator.share({ title: "KnowYourself.ai", text });
-                  else { await navigator.clipboard.writeText(text); alert("Copied result to clipboard"); }
-                } catch {}
-              }}
-              style={ui.cta}
-            >
-              Share
-            </button>
-            <button onClick={restart} style={{ ...ui.btn, textAlign: "center" }}>Restart</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+    card: { background: "#0f172a", border: "1px
