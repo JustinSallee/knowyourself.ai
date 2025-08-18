@@ -4,3 +4,18 @@
 /* optional: keep anything else you want below */
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+/* === Dark theme form fixes === */
+input, textarea, select {
+  background-color: #ffffff;           /* white field */
+  color: #111827;                      /* gray-900 text */
+  border-radius: 0.75rem;              /* rounded-xl */
+  padding: 0.5rem 0.75rem;             /* px-3 py-2 */
+}
+input::placeholder, textarea::placeholder {
+  color: #6b7280;                      /* gray-500 */
+}
+button:focus, input:focus, textarea:focus, select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.4);
+}
+label { color: #ffffff; }

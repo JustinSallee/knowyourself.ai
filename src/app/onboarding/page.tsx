@@ -67,20 +67,20 @@ export default function OnboardingPage() {
   const canSubmit = questions.every((q) => Boolean(answers[q.id]));
 
   const onSubmit = async () => {
-    if (!canSubmit || submitting) return;
-    setSubmitting(true);
-    try {
-      await fetch("/api/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers })
-      }).catch(() => {});
-      // send to day 1 of your flow, not the placeholder quiz
-      router.push("/trial/1");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  if (!canSubmit || submitting) return;
+  setSubmitting(true);
+  try {
+    await fetch("/api/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers })
+    }).catch(() => {});
+    // go to your real flow – this is where the 30 MCQs live in your app
+    router.push("/trial/1");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <div className="mx-auto max-w-2xl p-6 space-y-8">

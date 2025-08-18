@@ -3,7 +3,7 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import SignInButton from "@/components/SignInButton";
 
-// Always render fresh so auth state is correct
+// always render fresh so auth state is correct
 export const dynamic = "force-dynamic";
 
 export default async function SiteHeader() {
@@ -25,8 +25,9 @@ export default async function SiteHeader() {
             Onboarding
           </Link>
 
+          {/* send users to the real quiz flow, not /quiz placeholder */}
           <Link
-            href="/quiz"
+            href="/trial/1"
             className="px-2.5 py-1.5 text-sm rounded-xl hover:bg-white/10"
           >
             Quiz
@@ -36,7 +37,7 @@ export default async function SiteHeader() {
             <>
               <span
                 title={user.email ?? "Signed in"}
-                className="hidden sm:inline rounded-full bg-white/10 px-2 py-1 text-xs"
+                className="hidden sm:inline rounded-full bg-white/10 px-2 py-1 text-xs max-w-[40vw] truncate"
               >
                 {user.email ?? "Signed in"}
               </span>
