@@ -1,7 +1,7 @@
-﻿// server component (no "use client")
+﻿// src/components/SiteHeader.tsx
 import Link from "next/link";
-import { supabaseServer } from "../lib/supabase/server";
-import SignInButton from "./SignInButton";
+import { supabaseServer } from "@/lib/supabase/server";
+import SignInButton from "@/components/SignInButton";
 
 export default async function SiteHeader() {
   const supabase = supabaseServer();
@@ -15,10 +15,10 @@ export default async function SiteHeader() {
         </Link>
 
         <nav className="flex items-center gap-3">
-          <Link href="/onboarding" className="px-3 py-2 rounded-xl hover:bg-gray-100">
+          <Link href="/onboarding" className="px-3 py-2 rounded-xl hover:bg-white/10">
             Onboarding
           </Link>
-          <Link href="/quiz" className="px-3 py-2 rounded-xl hover:bg-gray-100">
+          <Link href="/quiz" className="px-3 py-2 rounded-xl hover:bg-white/10">
             Quiz
           </Link>
 
@@ -27,7 +27,7 @@ export default async function SiteHeader() {
               Profile
             </Link>
           ) : (
-            <SignInButton next="/quiz" />
+            <SignInButton next="/onboarding" />
           )}
         </nav>
       </div>

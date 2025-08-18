@@ -1,19 +1,16 @@
 "use client";
-
 import { createSupabaseClient } from "@/lib/supabase/client";
 
-export default function SignInButton({ next = "/quiz" }: { next?: string }) {
+export default function SignInButton({ next = "/onboarding" }: { next?: string }) {
   const supabase = createSupabaseClient();
 
-  const onClick = async () => {
+  async function onClick() {
     const origin = window.location.origin;
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`
-      }
+      options: { redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}` }
     });
-  };
+  }
 
   return (
     <button
