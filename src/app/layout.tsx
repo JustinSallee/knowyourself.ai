@@ -1,14 +1,18 @@
 ﻿import "./globals.css";
-import SiteHeader from "@/components/SiteHeader";
+import type { Metadata } from "next";
+import SiteHeader from "../components/SiteHeader";
+
+export const metadata: Metadata = {
+  title: "KnowYourself.ai",
+  description: "Smartness Score and more",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      {/* gradient everywhere */}
-      <body className="min-h-screen bg-gradient-to-b from-indigo-700 via-slate-900 to-rose-700 antialiased">
+      <body>
         <SiteHeader />
-        {/* spacing below the fixed header */}
-        <div className="pt-14">{children}</div>
+        {children}
       </body>
     </html>
   );

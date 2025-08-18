@@ -1,55 +1,36 @@
-﻿"use client";
+﻿// src/components/SiteHeader.tsx
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { supabaseBrowser } from "@/lib/supabase-browser";
+// adjust the path below if your folder layout is different
+import { supabaseServer } from "../lib/supabase/server";
 
-export default function SiteHeader() {
-  const sb = supabaseBrowser();
-  const [email, setEmail] = useState<string | null>(null);
-
-  useEffect(() => {
-    sb.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
-    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => {
-      setEmail(s?.user?.email ?? null);
-    });
-    return () => sub.subscription.unsubscribe();
-  }, [sb]);
+export default async function SiteHeader() {
+  const supabase = supabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <header className="fixed top-0 inset-x-0 z-40">
-      <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {email ? (
-            <Link
-              href="/profile"
-              className="inline-flex items-center rounded-full bg-white/90 text-gray-900 px-4 py-2 text-sm font-semibold shadow hover:bg-white transition"
-              title={email}
-            >
+    <header className="w-full border-b">
+      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+        <Link href="/" className="text-lg font-semibold">
+          KnowYourself.ai
+        </Link>
+
+        <nav className="flex items-center gap-3">
+          <Link href="/onboarding" className="px-3 py-2 rounded-xl hover:bg-gray-100">
+            Onboarding
+          </Link>
+          <Link href="/quiz" className="px-3 py-2 rounded-xl hover:bg-gray-100">
+            Quiz
+          </Link>
+
+          {user ? (
+            <Link href="/account" className="px-3 py-2 rounded-xl bg-black text-white">
               Profile
             </Link>
           ) : (
-            <Link
-              href="/signin?next=/onboarding"
-              className="inline-flex items-center rounded-full border border-white/50 text-white px-4 py-2 text-sm font-semibold hover:bg-white/10 transition"
-            >
+            <Link href="/signin" className="px-3 py-2 rounded-xl bg-black text-white">
               Sign in
             </Link>
           )}
-        </div>
-
-        <nav className="flex items-center gap-2">
-          <Link
-            href="/chat"
-            className="inline-flex items-center rounded-full border border-white/30 text-white/90 px-3 py-1.5 text-sm hover:bg-white/10 transition"
-          >
-            Chat
-          </Link>
-          <Link
-            href="/trial/done"
-            className="inline-flex items-center rounded-full border border-white/30 text-white/90 px-3 py-1.5 text-sm hover:bg-white/10 transition"
-          >
-            Summary
-          </Link>
         </nav>
       </div>
     </header>
