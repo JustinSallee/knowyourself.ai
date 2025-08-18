@@ -1,6 +1,6 @@
+/* Tailwind v4 */
 @import "tailwindcss";
 
-@layer base {
-  html, body, #__next { height: 100%; }
-  body { @apply bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-slate-100; }
-}
+/* optional: keep anything else you want below */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
