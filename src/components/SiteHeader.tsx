@@ -1,14 +1,14 @@
-﻿// src/components/SiteHeader.tsx
+﻿// server component (no "use client")
 import Link from "next/link";
-// adjust the path below if your folder layout is different
 import { supabaseServer } from "../lib/supabase/server";
+import SignInButton from "./SignInButton";
 
 export default async function SiteHeader() {
   const supabase = supabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <header className="w-full border-b">
+    <header className="w-full border-b relative z-50">
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
         <Link href="/" className="text-lg font-semibold">
           KnowYourself.ai
@@ -27,9 +27,7 @@ export default async function SiteHeader() {
               Profile
             </Link>
           ) : (
-            <Link href="/signin" className="px-3 py-2 rounded-xl bg-black text-white">
-              Sign in
-            </Link>
+            <SignInButton next="/quiz" />
           )}
         </nav>
       </div>
