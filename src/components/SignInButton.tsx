@@ -3,7 +3,6 @@ import { createSupabaseClient } from "@/lib/supabase/client";
 
 export default function SignInButton({ next = "/onboarding" }: { next?: string }) {
   const supabase = createSupabaseClient();
-
   async function onClick() {
     const origin = window.location.origin;
     await supabase.auth.signInWithOAuth({
@@ -11,7 +10,6 @@ export default function SignInButton({ next = "/onboarding" }: { next?: string }
       options: { redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}` }
     });
   }
-
   return (
     <button
       onClick={onClick}

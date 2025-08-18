@@ -77,25 +77,22 @@ export default function OnboardingPage() {
 
   const canSubmit = questions.every((q) => Boolean(answers[q.id]));
 
-  const onSubmit = async () => {
-    if (!canSubmit || submitting) return;
-    setSubmitting(true);
-    try {
-      // Optional: save to your API. If you do not have this route yet it will safely fail.
-      await fetch("/api/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers }),
-      }).catch(() => {});
-      // Move to quiz
-      router.push("/quiz");
-    } catch {
-      // If the API is not ready, still move on
-      router.push("/quiz");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+const onSubmit = async () => {
+  if (!canSubmit || submitting) return;
+  setSubmitting(true);
+  try {
+    await fetch("/api/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers }),
+    }).catch(() => {});
+    // send to day 1 of your real quiz flow
+    router.push("/trial/1");
+  } finally {
+    setSubmitting(false);
+  }
+};
+
 
   return (
     <main className="mx-auto max-w-2xl p-6 space-y-8">

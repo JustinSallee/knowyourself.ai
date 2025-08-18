@@ -11,12 +11,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-     <body className="min-h-screen text-white bg-gradient-to-b from-indigo-700 via-slate-900 to-rose-700">
+  <body className="min-h-screen text-white bg-gradient-to-b from-indigo-900 via-slate-950 to-rose-900">
   <div className="fixed inset-x-0 top-0 z-50">
     <SiteHeader />
   </div>
-  <main className="mx-auto max-w-6xl px-4 pt-20 pb-10">{children}</main>
+  {/* add safe area padding for phones with notches */}
+  <main className="mx-auto max-w-6xl px-4 pt-20 pb-10 sm:pt-20 [padding-top:env(safe-area-inset-top)]">
+    {children}
+  </main>
 </body>
+
 
     </html>
   );
