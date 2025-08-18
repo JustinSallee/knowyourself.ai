@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gradient-to-br from-black via-slate-900 to-black text-white">
+      <body className="min-h-screen bg-gradient-to-br from-sky-600 via-indigo-700 to-rose-600 text-white">
         <div className="fixed inset-x-0 top-0 z-50">
           <SiteHeader />
         </div>
