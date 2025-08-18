@@ -18,9 +18,9 @@ export default function SignInButton({ next = "/quiz" }: { next?: string }) {
   return (
     <button
       onClick={onClick}
-      className="px-3 py-2 rounded-xl bg-black text-white hover:opacity-90"
+      className="px-3 py-2 rounded-2xl bg-white text-gray-900 font-semibold shadow hover:opacity-90"
     >
-      Sign in
+      Sign in with Google
     </button>
   );
 }
