@@ -3,7 +3,7 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import SignInButton from "@/components/SignInButton";
 
-// ensure this server component never gets statically cached
+// Always render fresh so auth state is correct
 export const dynamic = "force-dynamic";
 
 export default async function SiteHeader() {
@@ -11,39 +11,44 @@ export default async function SiteHeader() {
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <header className="w-full border-b/0 relative z-50">
-      <div className="mx-auto max-w-6xl w-full px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="text-lg font-semibold">
-          KnowYourself.ai
-        </Link>
+    <header className="w-full">
+      <div className="mx-auto max-w-6xl w-full px-3 py-2 flex items-center justify-center">
+        <nav className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+          <Link href="/" className="text-sm sm:text-base font-semibold mr-1 sm:mr-3">
+            KnowYourself.ai
+          </Link>
 
-        <nav className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap max-w-full">
-          {/* show a tiny signed-in badge on narrow screens */}
-          {user && (
-            <span
-              title={user.email ?? "Signed in"}
-              className="hidden xs:inline rounded-full bg-white/10 px-2 py-1 text-xs truncate max-w-[40vw]"
-            >
-              {user.email ?? "Signed in"}
-            </span>
-          )}
-
-          <Link href="/onboarding" className="px-3 py-2 rounded-xl hover:bg-white/10">
+          <Link
+            href="/onboarding"
+            className="px-2.5 py-1.5 text-sm rounded-xl hover:bg-white/10"
+          >
             Onboarding
           </Link>
-          <Link href="/quiz" className="px-3 py-2 rounded-xl hover:bg-white/10">
+
+          <Link
+            href="/quiz"
+            className="px-2.5 py-1.5 text-sm rounded-xl hover:bg-white/10"
+          >
             Quiz
           </Link>
 
           {user ? (
-            <Link
-              href="/account"
-              className="px-3 py-2 rounded-xl bg-black text-white"
-            >
-              Profile
-            </Link>
+            <>
+              <span
+                title={user.email ?? "Signed in"}
+                className="hidden sm:inline rounded-full bg-white/10 px-2 py-1 text-xs"
+              >
+                {user.email ?? "Signed in"}
+              </span>
+              <Link
+                href="/account"
+                className="px-2.5 py-1.5 text-sm rounded-xl bg-black text-white"
+              >
+                Profile
+              </Link>
+            </>
           ) : (
-            <SignInButton next="/onboarding" />
+            <SignInButton size="sm" next="/onboarding" />
           )}
         </nav>
       </div>
