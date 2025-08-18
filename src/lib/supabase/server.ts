@@ -16,8 +16,8 @@ export const supabaseServer = () => {
         },
         remove(name, options) {
           store.set({ name, value: "", ...options });
-        }
-      }
+        },
+      },
     }
   );
 };
