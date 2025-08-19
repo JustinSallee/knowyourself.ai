@@ -19,3 +19,18 @@ button:focus, input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 2px rgba(255,255,255,0.4);
 }
 label { color: #ffffff; }
+/* Dark theme input visibility */
+input, textarea, select {
+  background-color: #ffffff;
+  color: #111827;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+}
+input::placeholder, textarea::placeholder {
+  color: #6b7280;
+}
+button:focus, input:focus, textarea:focus, select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.4);
+}
+label { color: #ffffff; }

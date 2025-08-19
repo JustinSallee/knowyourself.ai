@@ -1,119 +1,174 @@
-﻿"use client";
+﻿// src/app/trial/[day]/page.tsx
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DAYS, pickMicroGoals, TRIAL_DAYS } from "@/lib/trialFlow";
 
-type Entry = { day:number; mood?:number; free?:string; goals?:string[]; ts?:number };
+type MCQ = { id: string; prompt: string; options: string[] };
+type FRQ = { id: string; prompt: string };
+type Answers = Record<string, string>;
 
 export default function TrialDayPage({ params }: { params: { day: string } }) {
+  const day = Number(params.day || "1");
   const router = useRouter();
-  const day = Math.max(1, Math.min(TRIAL_DAYS as number, Number(params.day || "1")));
-  const plan = DAYS[day - 1];
+  const [loading, setLoading] = useState(true);
+  const [mcq, setMcq] = useState<MCQ[]>([]);
+  const [frq, setFrq] = useState<FRQ[]>([]);
+  const [answers, setAnswers] = useState<Answers>({});
+  const [saving, setSaving] = useState(false);
 
-  const [mood, setMood] = useState<number>(50);
-  const [free, setFree] = useState<string>("");
-  const [picked, setPicked] = useState<string[]>([]);
+  const storageKey = useMemo(() => `trial_answers_day_${day}`, [day]);
 
-  const suggestions = useMemo(() => {
-    try {
-      const intake = JSON.parse(localStorage.getItem("ky_intake") || "{}")?.goal as string | undefined;
-      const trial: Entry[] = JSON.parse(localStorage.getItem("ky_trial") || "[]");
-      const last = trial[trial.length - 1];
-      return pickMicroGoals({ intake, lastFree: last?.free, lastMood: last?.mood });
-    } catch { return []; }
+  useEffect(() => {
+    // load questions
+    (async () => {
+      try {
+        const res = await fetch(`/api/trial/start?day=${day}`, { cache: "no-store" });
+        const data = await res.json();
+        setMcq(data.mcq || []);
+        setFrq(data.frq || []);
+      } catch {
+        // keep empty
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [day]);
 
   useEffect(() => {
+    // load existing answers (resume)
     try {
-      const trial: Entry[] = JSON.parse(localStorage.getItem("ky_trial") || "[]");
-      const existing = trial.find(e => e.day === day);
-      if (existing) {
-        setMood(existing.mood ?? 50);
-        setFree(existing.free ?? "");
-        setPicked(existing.goals ?? []);
-      }
+      const raw = localStorage.getItem(storageKey);
+      if (raw) setAnswers(JSON.parse(raw) as Answers);
     } catch {}
-  }, [day]);
+  }, [storageKey]);
 
-  function toggleGoal(id: string) {
-    setPicked(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  useEffect(() => {
+    // persist every change
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(answers));
+    } catch {}
+  }, [answers, storageKey]);
+
+  function onMCQChange(id: string, value: string) {
+    setAnswers((prev) => ({ ...prev, [id]: value }));
   }
 
-  function save(goNext: boolean) {
-    try {
-      const trial: Entry[] = JSON.parse(localStorage.getItem("ky_trial") || "[]");
-      const next = trial.filter(e => e.day !== day);
-      next.push({ day, mood, free: free.trim(), goals: picked, ts: Date.now() });
-      localStorage.setItem("ky_trial", JSON.stringify(next.sort((a,b)=>a.day-b.day)));
-      if (!localStorage.getItem("ky_trial_start")) {
-        localStorage.setItem("ky_trial_start", new Date().toISOString());
-      }
-    } catch {}
+  function onFRQChange(id: string, value: string) {
+    setAnswers((prev) => ({ ...prev, [id]: value }));
+  }
 
-    // Always go to chat after save
-    router.push("/chat");
+  const totalRequired = mcq.length + frq.length;
+  const completed = Object.keys(answers).filter(
+    (k) => answers[k] !== undefined && answers[k] !== ""
+  ).length;
+  const canSubmit = completed >= totalRequired && totalRequired > 0;
+
+  async function onSubmit() {
+    if (!canSubmit || saving) return;
+    setSaving(true);
+    try {
+      await fetch("/api/trial/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ day, answers }),
+      }).catch(() => {});
+      // go to done
+      router.push("/trial/done");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl p-6">
+        <div className="text-white/80">Loading questions…</div>
+      </div>
+    );
   }
 
   return (
-    <main className="min-h-dvh bg-gradient-to-b from-indigo-700 via-slate-900 to-rose-700 grid place-items-center">
-      <div className="rounded-2xl bg-white p-8 shadow max-w-2xl w-full">
-        <div className="text-sm text-gray-500">Day {day} of {TRIAL_DAYS}</div>
-        <h1 className="mt-1 text-2xl font-bold text-gray-900">{plan.aiPrompt}</h1>
+    <div className="mx-auto max-w-3xl p-6 space-y-8">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-bold">Smartness Score — Day {day}</h1>
+        <p className="text-white/80">
+          30 quick picks + 4 short answers. You’ve completed {completed}/{totalRequired}.
+        </p>
+      </header>
 
-        {plan.mood && (
-          <div className="mt-6">
-            <div className="flex items-center justify-between text-sm text-gray-700">
-              <span>How are you feeling right now?</span>
-              <span className="font-mono">{mood}</span>
+      {/* MCQs */}
+      <section className="space-y-6">
+        {mcq.map((q, idx) => (
+          <div
+            key={q.id}
+            className="rounded-2xl border border-white/15 bg-white/5 p-5"
+          >
+            <div className="font-semibold">{idx + 1}. {q.prompt}</div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {q.options.map((opt) => {
+                const id = `${q.id}_${opt}`;
+                const checked = answers[q.id] === opt;
+                return (
+                  <label
+                    key={id}
+                    className={`flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer ${
+                      checked ? "ring-2 ring-white/60 bg-white/10" : "border-white/15 hover:bg-white/5"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={q.id}
+                      value={opt}
+                      checked={checked}
+                      onChange={() => onMCQChange(q.id, opt)}
+                      className="h-4 w-4"
+                    />
+                    <span>{opt}</span>
+                  </label>
+                );
+              })}
             </div>
-            <input type="range" min={0} max={100} value={mood} onChange={(e)=>setMood(Number(e.target.value))} className="w-full" />
           </div>
+        ))}
+      </section>
+
+      {/* Short answers */}
+      <section className="space-y-6">
+        {frq.map((q, idx) => (
+          <div
+            key={q.id}
+            className="rounded-2xl border border-white/15 bg-white/5 p-5"
+          >
+            <div className="font-semibold">{30 + idx + 1}. {q.prompt}</div>
+            <textarea
+              className="mt-3 w-full min-h-[100px] rounded-xl px-3 py-2 bg-white text-gray-900 placeholder-gray-500"
+              placeholder="Type your response…"
+              value={answers[q.id] || ""}
+              onChange={(e) => onFRQChange(q.id, e.target.value)}
+            />
+          </div>
+        ))}
+      </section>
+
+      <footer className="pt-2">
+        <button
+          onClick={onSubmit}
+          disabled={!canSubmit || saving}
+          className={`w-full rounded-2xl px-4 py-3 text-white text-lg font-semibold ${
+            !canSubmit || saving
+              ? "bg-white/20 cursor-not-allowed"
+              : "bg-black hover:opacity-90"
+          }`}
+        >
+          {saving ? "Saving…" : "Finish"}
+        </button>
+        {!canSubmit && (
+          <p className="mt-2 text-center text-sm opacity-70">
+            Answer all questions to continue
+          </p>
         )}
-
-        <label className="block mt-6 text-sm font-medium text-gray-900">{plan.freePrompt}</label>
-        <textarea
-          value={free}
-          onChange={(e)=>setFree(e.target.value)}
-          className="mt-2 w-full rounded-xl border border-black/10 p-4 outline-none focus:ring-2 focus:ring-black"
-          rows={6}
-          placeholder="Write it out. Short and honest beats long and vague."
-        />
-
-        <div className="mt-6">
-          <div className="text-sm font-medium text-gray-900">Today's micro-goals</div>
-          <div className="mt-3 grid gap-2">
-            {suggestions.map(g => (
-              <label key={g.id} className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition ${picked.includes(g.id) ? "border-gray-900 bg-gray-50" : "border-black/10 hover:bg-gray-50"}`}>
-                <input
-                  type="checkbox"
-                  checked={picked.includes(g.id)}
-                  onChange={()=>toggleGoal(g.id)}
-                  className="accent-black"
-                />
-                <span className="text-gray-900">{g.text}</span>
-              </label>
-            ))}
-            {!suggestions.length && (
-              <div className="text-sm text-gray-500">No suggestions today — pick any 1–3 tiny actions you can win.</div>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            onClick={()=>save(true)}
-            className="inline-flex items-center justify-center rounded-2xl px-6 py-3 bg-gray-900 text-white font-semibold shadow transition-all duration-150 hover:shadow-md hover:scale-[1.02] active:scale-95"
-          >
-            Save & Continue
-          </button>
-          <button
-            onClick={()=>save(false)}
-            className="inline-flex items-center justify-center rounded-2xl px-6 py-3 bg-white text-gray-900 border border-black/10 font-semibold shadow transition-all duration-150 hover:shadow-md hover:scale-[1.02] active:scale-95"
-          >
-            Save & Finish Later
-          </button>
-        </div>
-      </div>
-    </main>
+      </footer>
+    </div>
   );
 }

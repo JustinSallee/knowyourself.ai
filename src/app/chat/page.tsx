@@ -1,28 +1,42 @@
-﻿"use client";
+﻿// src/app/chat/page.tsx
+"use client";
+
 import { useState } from "react";
 
+type Msg = { role: "user" | "assistant"; content: string };
+
 export default function ChatPage() {
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const text = input.trim();
-    if (!text) return;
-    setMessages(prev => [...prev, { role: "user", content: text }]);
+    if (!text || busy) return;
+
+    const next = [...messages, { role: "user", content: text } as Msg];
+    setMessages(next);
     setInput("");
+    setBusy(true);
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ message: text }),
       });
+
       const data = await res.json().catch(() => ({}));
-      const reply = data.reply || data.text || "(no reply)";
-      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+      const reply = data?.reply || data?.text || "(no reply)";
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: "(error)" }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "(error talking to AI)" },
+      ]);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -49,7 +63,12 @@ export default function ChatPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
         />
-        <button className="rounded-xl px-4 py-2 bg-black text-white">Send</button>
+        <button
+          disabled={busy}
+          className="rounded-xl px-4 py-2 bg-black text-white disabled:opacity-50"
+        >
+          {busy ? "…" : "Send"}
+        </button>
       </form>
     </div>
   );
