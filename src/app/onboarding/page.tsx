@@ -1,4 +1,5 @@
 ﻿"use client";
+import { markOnboardingDone } from "@/lib/progress";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -17,8 +18,8 @@ const questions: Question[] = [
       { value: "find_clarity", label: "Find clarity" },
       { value: "career_growth", label: "Career growth" },
       { value: "relationships", label: "Improve relationships" },
-      { value: "health", label: "Health and fitness" }
-    ]
+      { value: "health", label: "Health and fitness" },
+    ],
   },
   {
     id: "style",
@@ -27,8 +28,8 @@ const questions: Question[] = [
       { value: "visual", label: "Visual explanations" },
       { value: "hands_on", label: "Hands on practice" },
       { value: "reading", label: "Reading and notes" },
-      { value: "discussion", label: "Discussion and feedback" }
-    ]
+      { value: "discussion", label: "Discussion and feedback" },
+    ],
   },
   {
     id: "pace",
@@ -36,17 +37,18 @@ const questions: Question[] = [
     options: [
       { value: "slow", label: "Slow and steady" },
       { value: "balanced", label: "Balanced pace" },
-      { value: "fast", label: "As fast as possible" }
-    ]
-  }
+      { value: "fast", label: "As fast as possible" },
+    ],
+  },
 ];
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // load from localStorage (so mobile refresh does not wipe progress)
+  // load from localStorage (so refresh doesn’t wipe progress)
   useEffect(() => {
     try {
       const raw = localStorage.getItem("onboarding_answers");
@@ -67,20 +69,36 @@ export default function OnboardingPage() {
   const canSubmit = questions.every((q) => Boolean(answers[q.id]));
 
   const onSubmit = async () => {
-  if (!canSubmit || submitting) return;
-  setSubmitting(true);
-  try {
-    await fetch("/api/onboarding", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers })
-    }).catch(() => {});
-    // go to your real flow – this is where the 30 MCQs live in your app
-    router.push("/trial/1");
-  } finally {
-    setSubmitting(false);
-  }
-};
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    setErrorMsg(null);
+
+    try {
+      // Save onboarding answers to your backend (kept from your original)
+      await fetch("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers }),
+      }).catch(() => {});
+
+      // Mark onboarding as done (so TopBar flips once quiz also completes)
+      try {
+        await markOnboardingDone();
+      } catch {
+        // Non-fatal: allow them to continue; UI will flip after next successful write
+        setErrorMsg("Saved answers, but couldn’t mark onboarding complete yet. You can continue.");
+      }
+
+      // Clear local cache and move to quiz flow
+      try {
+        localStorage.removeItem("onboarding_answers");
+      } catch {}
+
+      router.push("/trial/1");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-2xl p-6 space-y-8">
@@ -130,9 +148,7 @@ export default function OnboardingPage() {
           onClick={onSubmit}
           disabled={!canSubmit || submitting}
           className={`w-full rounded-2xl px-4 py-3 text-white text-lg font-semibold ${
-            !canSubmit || submitting
-              ? "bg-white/20 cursor-not-allowed"
-              : "bg-black hover:opacity-90"
+            !canSubmit || submitting ? "bg-white/20 cursor-not-allowed" : "bg-black hover:opacity-90"
           }`}
         >
           {submitting ? "Saving..." : "Start"}
@@ -142,6 +158,10 @@ export default function OnboardingPage() {
           <p className="mt-2 text-center text-sm opacity-70">
             Pick an option for each question to continue
           </p>
+        )}
+
+        {errorMsg && (
+          <p className="mt-2 text-center text-sm text-amber-300">{errorMsg}</p>
         )}
       </footer>
     </div>
