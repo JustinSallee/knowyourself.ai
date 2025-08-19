@@ -1,35 +1,38 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+// src/app/auth/callback/route.ts
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-export async function GET(req: NextRequest) {
+export const runtime = "nodejs";
+
+export async function GET(req: Request) {
   const url = new URL(req.url);
+  const next = url.searchParams.get("next") ?? "/";
   const code = url.searchParams.get("code");
-  const next = url.searchParams.get("next") || "/";
 
-  const res = NextResponse.redirect(new URL(next, req.url));
-
-  if (!code) return res;
-
+  const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name) {
-          return req.cookies.get(name)?.value;
+        get(name: string) {
+          return cookieStore.get(name)?.value;
         },
-        set(name, value, options) {
-          res.cookies.set({ name, value, ...options });
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options });
         },
-        remove(name, options) {
-          res.cookies.set({ name, value: "", ...options });
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set({ name, value: "", ...options, maxAge: 0 });
         },
       },
     }
   );
 
-  // Exchange the code for a session and set cookies
-  await supabase.auth.exchangeCodeForSession(code);
+  if (code) {
+    // Exchange the code for a session and set cookies
+    await supabase.auth.exchangeCodeForSession(code);
+  }
 
-  return res;
+  return NextResponse.redirect(new URL(next, url).toString());
 }
