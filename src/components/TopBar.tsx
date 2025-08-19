@@ -8,16 +8,14 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Fun non human emoji avatars. We store the chosen emoji string in avatar_url.
 const AVATARS = ["🦊","🐼","🐸","🐵","🐨","🐯","🦄","🐲","🐙","🐧"];
 
 export default function TopBar() {
   const [userId, setUserId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("");
-  const [avatarUrl, setAvatarUrl] = useState<string>(""); // storing emoji here
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
   const [open, setOpen] = useState(false);
 
-  // Load user and profile
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -58,23 +56,25 @@ export default function TopBar() {
   };
 
   return (
-    <header className="relative h-16 flex items-center px-4">
-      {/* Grey strip only over sidebar width */}
+    // thicker top bar
+    <header className="relative h-20 flex items-center px-4">
+      {/* grey strip only over sidebar width */}
       <div
         className="absolute left-0 top-0 h-full w-64 border-r-2 border-gray-400/40 bg-gray-50/10 pointer-events-none"
         aria-hidden
       />
-      {/* Centered nav */}
-      <nav className="relative z-10 mx-auto flex items-center gap-3">
+
+      {/* centered nav buttons */}
+      <nav className="relative z-10 mx-auto flex items-center gap-4">
         <Link
           href="/onboarding"
-          className="rounded-md px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
+          className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
         >
           Onboarding
         </Link>
         <Link
           href="/quiz"
-          className="rounded-md px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
+          className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
         >
           Quiz
         </Link>
@@ -83,19 +83,19 @@ export default function TopBar() {
             onClick={async () => {
               await supabase.auth.signInWithOAuth({ provider: "google" });
             }}
-            className="rounded-md px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
+            className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
           >
             Sign in with Google
           </button>
         )}
       </nav>
 
-      {/* Right side profile button, only when signed in */}
+      {/* profile button, slightly down and inward */}
       {userId && (
         <div className="relative z-10 ml-auto pr-2">
           <button
             onClick={() => setOpen(true)}
-            className="rounded-full h-10 px-4 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm translate-y-[2px]"
+            className="rounded-full h-10 px-4 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm translate-y-[4px]"
             aria-label="Profile"
           >
             Profile
@@ -103,7 +103,7 @@ export default function TopBar() {
         </div>
       )}
 
-      {/* Profile modal */}
+      {/* profile modal */}
       {open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <form
