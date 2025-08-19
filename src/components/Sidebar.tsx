@@ -21,7 +21,7 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <aside className="w-64 shrink-0 border-r p-3 overflow-auto">
+    <aside className="w-64 shrink-0 border-r-2 border-gray-400/40 bg-gray-50/10 backdrop-blur p-3 overflow-auto">
       <div className="text-sm font-semibold mb-2">History</div>
       <div className="space-y-1">
         {items.map(c => (
