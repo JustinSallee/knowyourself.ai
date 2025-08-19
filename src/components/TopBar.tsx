@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -7,12 +8,16 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// Fun non human emoji avatars. We store the chosen emoji string in avatar_url.
+const AVATARS = ["🦊","🐼","🐸","🐵","🐨","🐯","🦄","🐲","🐙","🐧"];
+
 export default function TopBar() {
   const [userId, setUserId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("");
-  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string>(""); // storing emoji here
   const [open, setOpen] = useState(false);
 
+  // Load user and profile
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -34,7 +39,7 @@ export default function TopBar() {
     init();
   }, []);
 
-  const onSave = async (e: React.FormEvent) => {
+  const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
     await supabase.from("profiles").upsert({
@@ -46,20 +51,67 @@ export default function TopBar() {
     setOpen(false);
   };
 
-  return (
-    <header className="h-14 flex items-center justify-end px-4">
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-full h-10 px-4 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
-        aria-label="Profile"
-      >
-        Profile
-      </button>
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUserId(null);
+    setOpen(false);
+  };
 
+  return (
+    <header className="relative h-16 flex items-center px-4">
+      {/* Grey strip only over sidebar width */}
+      <div
+        className="absolute left-0 top-0 h-full w-64 border-r-2 border-gray-400/40 bg-gray-50/10 pointer-events-none"
+        aria-hidden
+      />
+      {/* Centered nav */}
+      <nav className="relative z-10 mx-auto flex items-center gap-3">
+        <Link
+          href="/onboarding"
+          className="rounded-md px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
+        >
+          Onboarding
+        </Link>
+        <Link
+          href="/quiz"
+          className="rounded-md px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
+        >
+          Quiz
+        </Link>
+        {!userId && (
+          <button
+            onClick={async () => {
+              await supabase.auth.signInWithOAuth({ provider: "google" });
+            }}
+            className="rounded-md px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
+          >
+            Sign in with Google
+          </button>
+        )}
+      </nav>
+
+      {/* Right side profile button, only when signed in */}
+      {userId && (
+        <div className="relative z-10 ml-auto pr-2">
+          <button
+            onClick={() => setOpen(true)}
+            className="rounded-full h-10 px-4 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm translate-y-[2px]"
+            aria-label="Profile"
+          >
+            Profile
+          </button>
+        </div>
+      )}
+
+      {/* Profile modal */}
       {open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <form onSubmit={onSave} className="bg-white rounded-lg p-4 w-80 space-y-3">
+          <form
+            onSubmit={saveProfile}
+            className="bg-white text-gray-900 rounded-lg p-4 w-96 space-y-4 shadow-xl"
+          >
             <div className="text-base font-semibold">Your profile</div>
+
             <label className="block text-sm">
               Display name
               <input
@@ -68,26 +120,52 @@ export default function TopBar() {
                 className="mt-1 w-full border rounded px-2 py-1"
               />
             </label>
-            <label className="block text-sm">
-              Avatar url
-              <input
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                className="mt-1 w-full border rounded px-2 py-1"
-                placeholder="https://..."
-              />
-            </label>
-            <div className="flex gap-2 justify-end">
+
+            <div className="text-sm">
+              <div className="mb-1">Choose avatar</div>
+              <div className="grid grid-cols-5 gap-2">
+                {AVATARS.map((a) => {
+                  const selected = avatarUrl === a;
+                  return (
+                    <button
+                      type="button"
+                      key={a}
+                      onClick={() => setAvatarUrl(a)}
+                      className={`h-10 w-10 rounded-full flex items-center justify-center border
+                      ${selected ? "border-indigo-600 ring-2 ring-indigo-400" : "border-gray-300"}
+                      bg-gray-50 hover:bg-gray-100`}
+                      title={a}
+                    >
+                      <span className="text-xl">{a}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-between pt-2">
               <button
                 type="button"
-                onClick={() => setOpen(false)}
-                className="px-3 py-1 rounded border"
+                onClick={signOut}
+                className="px-3 py-1.5 rounded border border-gray-300 text-gray-800 hover:bg-gray-100"
               >
-                Cancel
+                Sign out
               </button>
-              <button type="submit" className="px-3 py-1 rounded bg-black text-white">
-                Save
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="px-3 py-1.5 rounded border border-gray-300 text-gray-800 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 rounded bg-black text-white"
+                >
+                  Save
+                </button>
+              </div>
             </div>
           </form>
         </div>
