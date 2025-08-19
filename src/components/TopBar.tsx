@@ -13,7 +13,7 @@ const AVATARS = ["🦊","🐼","🐸","🐵","🐨","🐯","🦄","🐲","🐙",
 export default function TopBar() {
   const [userId, setUserId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("");
-  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string>(""); // stores emoji
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -56,15 +56,14 @@ export default function TopBar() {
   };
 
   return (
-    // keep the thicker bar; buttons get a small top margin
     <header className="relative h-20 flex items-center px-4">
-      {/* grey strip only over sidebar width */}
+      {/* grey strip over sidebar only */}
       <div
         className="absolute left-0 top-0 h-full w-64 border-r-2 border-gray-400/40 bg-gray-50/10 pointer-events-none"
         aria-hidden
       />
 
-      {/* centered nav buttons with a tiny gap from the top */}
+      {/* centered nav */}
       <nav className="relative z-10 mx-auto mt-2 flex items-center gap-4">
         <Link
           href="/onboarding"
@@ -90,15 +89,21 @@ export default function TopBar() {
         )}
       </nav>
 
-      {/* profile button, also nudged down a bit */}
+      {/* avatar + name button, only when signed in */}
       {userId && (
         <div className="relative z-10 ml-auto pr-2 mt-2">
           <button
             onClick={() => setOpen(true)}
-            className="rounded-full h-10 px-4 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
-            aria-label="Profile"
+            className="flex items-center gap-2 rounded-full h-10 pl-2 pr-3 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
+            aria-label="Open profile"
+            title={displayName || "Profile"}
           >
-            Profile
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-xl border border-white/40">
+              <span className="leading-none">{avatarUrl || "🙂"}</span>
+            </span>
+            <span className="max-w-[10rem] truncate">
+              {displayName || "Profile"}
+            </span>
           </button>
         </div>
       )}
