@@ -33,14 +33,14 @@ export default function Sidebar() {
 
   if (!userId) {
     return (
-      <aside className="w-64 border-r border-white/15 p-3 text-white/70">
+      <aside className="hidden md:flex md:w-64 shrink-0 border-r border-white/15 p-3 text-white/70">
         <div className="text-sm">Sign in to view chat history</div>
       </aside>
     );
   }
 
   return (
-    <aside className="w-64 border-r border-white/15 flex flex-col">
+    <aside className="hidden md:flex md:w-64 shrink-0 border-r border-white/15 flex-col">
       <div className="h-12 flex items-center gap-2 px-3 border-b border-white/10">
         <span className="text-lg">🕒</span>
         <span className="font-medium">History</span>

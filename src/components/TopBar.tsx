@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
@@ -13,7 +13,7 @@ const AVATARS = ["🦊","🐼","🐸","🐵","🐨","🐯","🦄","🐲","🐙",
 type Profile = {
   id: string;
   display_name: string | null;
-  avatar_url: string | null; // we store the emoji here
+  avatar_url: string | null; // emoji
   onboarded: boolean | null;
   quiz_completed: boolean | null;
 };
@@ -35,36 +35,24 @@ export default function TopBar() {
   // Load session + profile on mount
   useEffect(() => {
     let cancelled = false;
-    const init = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) console.warn("getUser error", error);
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       const uid = user?.id ?? null;
       setUserId(uid);
-      if (!uid) {
-        setProfile(null);
-        return;
-      }
+      if (!uid) { setProfile(null); return; }
 
-      // ensure profile row exists, then read it
       await supabase.from("profiles").upsert({ id: uid }).throwOnError();
-
-      const { data: p, error: selErr } = await supabase
+      const { data: p } = await supabase
         .from("profiles")
         .select("id, display_name, avatar_url, onboarded, quiz_completed")
         .eq("id", uid)
         .maybeSingle();
 
       if (cancelled) return;
-      if (selErr) {
-        console.warn("select profile error", selErr);
-        setProfile(null);
-      } else {
-        setProfile(p as Profile);
-        setDisplayName(p?.display_name ?? "");
-        setAvatarUrl(p?.avatar_url ?? "");
-      }
-    };
-    init();
+      setProfile(p as Profile);
+      setDisplayName(p?.display_name ?? "");
+      setAvatarUrl(p?.avatar_url ?? "");
+    })();
     return () => { cancelled = true; };
   }, []);
 
@@ -78,10 +66,7 @@ export default function TopBar() {
       updated_at: new Date().toISOString(),
     };
     const { error } = await supabase.from("profiles").upsert(patch);
-    if (error) {
-      alert("Could not save profile");
-      return;
-    }
+    if (error) { alert("Could not save profile"); return; }
     setProfile(p => p ? { ...p, display_name: patch.display_name, avatar_url: patch.avatar_url } as Profile : p);
     setOpen(false);
   };
@@ -100,40 +85,42 @@ export default function TopBar() {
 
   return (
     <header className="relative h-20 flex items-center px-4">
-      {/* grey strip over sidebar only */}
-      <div className="absolute left-0 top-0 h-full w-64 border-r-2 border-gray-400/40 bg-gray-50/10 pointer-events-none" aria-hidden />
+      {/* grey strip over sidebar ONLY on md+ */}
+      <div
+        className="hidden md:block absolute left-0 top-0 h-full w-64 border-r-2 border-gray-400/40 bg-gray-50/10 pointer-events-none"
+        aria-hidden
+      />
 
       {/* centered nav */}
       <nav className="relative z-10 mx-auto mt-2 flex items-center gap-4">
-  {/* Show Badges once onboarding is complete */}
-  {profile?.onboarded && (
-    <Link href="/badges" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">
-      Badges
-    </Link>
-  )}
+        {/* Show Badges once onboarding is complete */}
+        {profile?.onboarded && (
+          <Link href="/badges" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">
+            Badges
+          </Link>
+        )}
 
-  {/* Before both done → Onboarding + Quiz */}
-  {!showSummary ? (
-    <>
-      <Link href="/onboarding" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Onboarding</Link>
-      <Link href="/trial/1" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Quiz</Link>
-    </>
-  ) : (
-    <>
-      <Link href="/summary" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Summary</Link>
-      <Link href="/boost" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Boost</Link>
-    </>
-  )}
+        {/* Before both done → Onboarding + Quiz */}
+        {!showSummary ? (
+          <>
+            <Link href="/onboarding" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Onboarding</Link>
+            <Link href="/trial/1" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Quiz</Link>
+          </>
+        ) : (
+          <>
+            <Link href="/summary" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Summary</Link>
+            <Link href="/boost" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Boost</Link>
+          </>
+        )}
 
-  <Link href="/chat" className="rounded-md px-3 py-2 text-sm font-medium bg-black text-white border border-white/20 shadow-sm">Chat</Link>
+        <Link href="/chat" className="rounded-md px-3 py-2 text-sm font-medium bg-black text-white border border-white/20 shadow-sm">Chat</Link>
 
-  {!userId && (
-    <button onClick={signIn} className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">
-      Sign in with Google
-    </button>
-  )}
-</nav>
-
+        {!userId && (
+          <button onClick={signIn} className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">
+            Sign in with Google
+          </button>
+        )}
+      </nav>
 
       {/* avatar + name button, only when signed in */}
       {userId && (
