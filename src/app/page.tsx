@@ -4,14 +4,17 @@ export default function HomePage() {
   return (
     <main className="relative isolate min-h-dvh">
       <section className="mx-auto max-w-3xl px-4 py-16 text-white">
-        <h1 className="text-5xl font-extrabold tracking-tight">
+        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight">
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-rose-300 via-amber-200 to-emerald-200">
             KnowYourself.ai
           </span>
         </h1>
+
         <p className="mt-4 text-lg/7 text-white/90">
-          Answer a few questions to get instant insight about who you are. Then
-          chat to deepen it over time.
+          Answer a few questions to get instant insight on who you truly are. Then use the AI assistant as you already do, and watch those insights deepen over time. Get current progress instantly anytime. Uncover personal blind spots, gain clarity on love languages, relationships, &amp; more!
+        </p>
+        <p className="mt-2 text-sm text-white/70">
+          Powered by OpenAI&apos;s ChatGPT
         </p>
 
         <div className="mt-8 flex gap-3">
