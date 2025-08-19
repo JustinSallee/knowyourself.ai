@@ -1,7 +1,6 @@
 ﻿// src/app/layout.tsx
 import "./globals.css";
 import type { Metadata } from "next";
-import SiteHeader from "@/components/SiteHeader";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 
@@ -19,7 +18,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="flex h-full">
             <Sidebar />
             <main className="flex-1 overflow-auto">
-              <SiteHeader />
               <div className="mx-auto max-w-6xl px-4 py-6">{children}</div>
             </main>
           </div>
