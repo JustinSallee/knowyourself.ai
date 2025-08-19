@@ -1,71 +1,74 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { BADGE_DEFS } from "@/lib/badges";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type Badge = { badge: string; status: "complete" | "incomplete"; progress: number; unlocked_at?: string | null };
-
-const ALL_BADGES = [
-  { key: "onboarding", label: "Onboarding" },
-  { key: "level2",    label: "Level 2" },
-  // add more later: level3, relationships, … etc
-];
+type Row = { badge: string; status: "complete" | "incomplete"; progress: number; unlocked_at: string | null };
 
 export default function BadgesPage() {
-  const [items, setItems] = useState<Badge[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) { setLoading(false); return; }
+
       const { data } = await supabase
         .from("user_badges")
         .select("badge, status, progress, unlocked_at")
         .eq("user_id", user.id);
-      setItems((data as Badge[]) ?? []);
+
+      setRows((data as Row[]) ?? []);
+      setLoading(false);
     })();
   }, []);
 
-  const map = new Map(items.map(b => [b.badge, b]));
-  return (
-    <main className="mx-auto max-w-3xl px-4 py-10 text-white">
-      <h1 className="text-3xl font-bold">Badges</h1>
-      <p className="mt-3 text-white/80">Earn badges by completing levels and milestones.</p>
+  const byKey = useMemo(() => new Map(rows.map(r => [r.badge, r])), [rows]);
 
-      <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {ALL_BADGES.map(b => {
-          const row = map.get(b.key);
-          const complete = row?.status === "complete";
-          return (
-            <div
-              key={b.key}
-              className={`rounded-2xl p-4 border shadow-sm transition
-                ${complete
-                  ? "bg-indigo-600 border-indigo-300 text-white"
-                  : "bg-white/5 border-white/15 text-white/60"
-                }`}
-            >
-              <div className="text-lg font-semibold">{b.label}</div>
-              {complete ? (
-                <div className="text-sm opacity-90 mt-1">Completed</div>
-              ) : (
-                <div className="text-sm opacity-75 mt-1">Incomplete</div>
-              )}
-              {typeof row?.progress === "number" && (
-                <div className="mt-3 h-2 bg-white/20 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-white"
-                    style={{ width: `${Math.max(0, Math.min(100, row.progress))}%` }}
-                  />
+  return (
+    <main className="mx-auto max-w-4xl px-4 py-10 text-white">
+      <h1 className="text-3xl font-bold">Badges</h1>
+      <p className="mt-3 text-white/80">Earn badges as you progress through levels.</p>
+
+      {loading ? (
+        <div className="mt-8 text-white/70">Loading…</div>
+      ) : (
+        <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {BADGE_DEFS.map(def => {
+            const row = byKey.get(def.key);
+            const complete = row?.status === "complete" || (row?.progress ?? 0) >= 100;
+            const progress = Math.max(0, Math.min(100, row?.progress ?? 0));
+            return (
+              <div
+                key={def.key}
+                className={`rounded-2xl p-4 border shadow-sm transition
+                  ${complete
+                    ? "bg-gradient-to-br from-indigo-600 to-fuchsia-600 border-indigo-300 text-white"
+                    : "bg-white/5 border-white/15 text-white/60"
+                  }`}
+                title={def.label}
+              >
+                <div className="text-2xl">{def.icon}</div>
+                <div className="mt-1 text-base font-semibold">{def.label}</div>
+                <div className="mt-1 text-xs opacity-80">
+                  {complete ? "Completed" : `${progress}%`}
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                {!complete && (
+                  <div className="mt-3 h-2 bg-white/15 rounded-full overflow-hidden">
+                    <div className="h-full bg-white" style={{ width: `${progress}%` }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </main>
   );
 }
