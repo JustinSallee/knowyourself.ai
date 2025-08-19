@@ -1,21 +1,21 @@
 // src/app/api/chat/route.ts
 import OpenAI from "openai";
-import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+  ChatCompletionMessageToolCall,
+} from "openai/resources/chat/completions";
 
 export const runtime = "nodejs";
 
-// Simple moon phase calculator (approximate but solid for Q&A)
+// --- simple moon phase helper (server-side) ---
 function moonPhaseInfo(date = new Date()) {
-  // Algorithm: days since known new moon, normalized to synodic month
-  // Reference new moon: 2000-01-06 18:14 UTC (JDN 2451550.1)
   const msPerDay = 86400000;
   const synodic = 29.530588853; // days
   const d = date.getTime() / msPerDay + 2440587.5; // Julian Day Number
-  const daysSince = d - 2451550.1;
-  let phase = (daysSince % synodic + synodic) % synodic; // 0..29.53
+  const daysSince = d - 2451550.1; // ref new moon 2000-01-06 18:14 UTC
+  const phase = (daysSince % synodic + synodic) % synodic; // 0..29.53
   const illum = (1 - Math.cos((2 * Math.PI * phase) / synodic)) / 2; // 0..1
-
-  // Name buckets
   const idx = Math.floor(((phase / synodic) * 8) + 0.5) % 8;
   const names = [
     "New Moon",
@@ -30,7 +30,7 @@ function moonPhaseInfo(date = new Date()) {
   return {
     dateISO: date.toISOString(),
     phaseDays: phase,
-    illumination: Number((illum * 100).toFixed(1)), // %
+    illumination: Number((illum * 100).toFixed(1)),
     name: names[idx],
   };
 }
@@ -52,26 +52,25 @@ const tools: ChatCompletionTool[] = [
         "Compute the moon phase for a given date (ISO). If no date provided, use 'now'. Returns phase name and illumination percent.",
       parameters: {
         type: "object",
-        properties: {
-          dateISO: { type: "string", description: "ISO datetime. Optional." },
-        },
+        properties: { dateISO: { type: "string", description: "ISO datetime (optional)" } },
         additionalProperties: false,
       },
     },
   },
 ];
 
+function safeParse(json: string) {
+  try { return JSON.parse(json || "{}"); } catch { return {}; }
+}
+
 export async function POST(req: Request) {
   try {
     const { message, system } = await req.json();
 
-    if (!process.env.OPENAI_API_KEY) {
-      return Response.json({ error: "OPENAI_API_KEY is not set" }, { status: 500 });
-    }
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return Response.json({ error: "OPENAI_API_KEY is not set" }, { status: 500 });
 
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-    // Choose your model via env; defaults to a strong general model.
+    const client = new OpenAI({ apiKey });
     const model = process.env.OPENAI_MODEL || "gpt-4o";
 
     const messages: ChatCompletionMessageParam[] = [
@@ -79,12 +78,12 @@ export async function POST(req: Request) {
         role: "system",
         content:
           (system as string) ||
-          "You are KnowYourself.ai. Be clear and helpful. If users ask about moon phase or today’s date, use the provided tools instead of deflecting.",
+          "You are KnowYourself.ai. Be clear and helpful. Use available tools for time or moon questions.",
       },
       { role: "user", content: String(message || "Hello!") },
     ];
 
-    // First call with tools enabled
+    // First pass with tools enabled
     let r = await client.chat.completions.create({
       model,
       messages,
@@ -93,34 +92,53 @@ export async function POST(req: Request) {
       tool_choice: "auto",
     });
 
-    // Handle tool calls (loop once or twice if needed)
-    let toolCalls = r.choices[0]?.message?.tool_calls || [];
-    const convo: ChatCompletionMessageParam[] = [...messages, r.choices[0].message];
+    const firstMsg = r.choices?.[0]?.message;
+    const toolCalls = firstMsg?.tool_calls as ChatCompletionMessageToolCall[] | undefined;
 
-    for (const call of toolCalls || []) {
-      const name = call.function.name;
-      const args = JSON.parse(call.function.arguments || "{}");
+    const convo: ChatCompletionMessageParam[] = [...messages];
+    if (firstMsg) convo.push(firstMsg);
 
-      if (name === "get_current_datetime") {
-        const now = new Date().toISOString();
-        convo.push({
-          role: "tool",
-          tool_call_id: call.id,
-          content: JSON.stringify({ nowISO: now }),
-        });
-      } else if (name === "get_moon_phase") {
-        const date = args?.dateISO ? new Date(args.dateISO) : new Date();
-        const info = moonPhaseInfo(date);
-        convo.push({
-          role: "tool",
-          tool_call_id: call.id,
-          content: JSON.stringify(info),
-        });
+    // Narrow tool calls by type before accessing `.function`
+    if (toolCalls?.length) {
+      for (const call of toolCalls) {
+        if (call.type === "function") {
+          const name = call.function.name;
+          const args = safeParse(call.function.arguments || "{}");
+
+          if (name === "get_current_datetime") {
+            const now = new Date().toISOString();
+            convo.push({
+              role: "tool",
+              tool_call_id: call.id,
+              content: JSON.stringify({ nowISO: now }),
+            });
+          } else if (name === "get_moon_phase") {
+            const date = args?.dateISO ? new Date(args.dateISO) : new Date();
+            const info = moonPhaseInfo(date);
+            convo.push({
+              role: "tool",
+              tool_call_id: call.id,
+              content: JSON.stringify(info),
+            });
+          } else {
+            // unknown function: return a stub so the model can respond gracefully
+            convo.push({
+              role: "tool",
+              tool_call_id: call.id,
+              content: JSON.stringify({ error: "unsupported_tool", name }),
+            });
+          }
+        } else {
+          // Not a function tool; acknowledge so the model can continue
+          convo.push({
+            role: "tool",
+            tool_call_id: call.id,
+            content: JSON.stringify({ error: "unsupported_tool_type", type: call.type }),
+          });
+        }
       }
-    }
 
-    if (toolCalls.length > 0) {
-      // Ask the model to produce the final answer with tool results
+      // Second pass to produce the final message with tool outputs
       r = await client.chat.completions.create({
         model,
         messages: convo,
