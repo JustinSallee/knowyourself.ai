@@ -1,0 +1,4103 @@
+----- FILE: .gitignore -----
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+.vercel
+
+.env*
+
+
+----- FILE: .vscode/settings.json -----
+{
+    "terminal.integrated.profiles.linux": {
+        "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+        },
+        "zsh": {
+            "path": "zsh"
+        },
+        "fish": {
+            "path": "fish"
+        },
+        "tmux": {
+            "path": "tmux",
+            "icon": "terminal-tmux"
+        },
+        "pwsh": {
+            "path": "pwsh",
+            "icon": "terminal-powershell"
+        }
+    }
+}
+
+----- FILE: README.md -----
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+----- FILE: env.d.ts -----
+export {};
+
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      NEXT_PUBLIC_SUPABASE_URL: string;
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: string;
+      NEXT_PUBLIC_SITE_URL?: string;
+    }
+  }
+}
+
+
+----- FILE: eslint.config.mjs -----
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { FlatCompat } from "@eslint/eslintrc";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
+
+const eslintConfig = [...compat.extends("next/core-web-vitals")];
+
+export default eslintConfig;
+
+
+----- FILE: middleware.ts -----
+// middleware.ts at project root or src/middleware.ts
+import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name, value, options) {
+          res.cookies.set({ name, value, ...options });
+        },
+        remove(name, options) {
+          res.cookies.set({ name, value: "", ...options });
+        }
+      }
+    }
+  );
+
+  // Touch the session so auth cookies stay fresh
+  await supabase.auth.getSession();
+
+  return res;
+}
+
+// Limit where middleware runs so it skips static files
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)$).*)"
+  ]
+};
+
+
+----- FILE: next.config.mjs -----
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Work around SWC compiler crashes on some Windows-encoded sources / unicode strings
+  swcMinify: false,
+};
+
+export default nextConfig;
+
+
+----- FILE: package-lock.json -----
+{
+  "name": "knowyourself-app",
+  "version": "0.1.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "knowyourself-app",
+      "version": "0.1.0",
+      "dependencies": {
+        "@supabase/ssr": "^0.6.1",
+        "@supabase/supabase-js": "^2.55.0",
+        "autoprefixer": "^10.4.20",
+        "next": "^14.2.31",
+        "openai": "^5.12.2",
+        "postcss": "^8.4.41",
+        "react": "18.3.1",
+        "react-dom": "18.3.1"
+      },
+      "devDependencies": {
+        "@tailwindcss/postcss": "^4.0.0",
+        "@types/react": "^18.3.23",
+        "@types/react-dom": "^18.3.7",
+        "tailwindcss": "^4.0.0",
+        "typescript": "^5.5.4"
+      },
+      "engines": {
+        "node": "20.x"
+      }
+    },
+    "node_modules/@alloc/quick-lru": {
+      "version": "5.2.0",
+      "resolved": "https://registry.npmjs.org/@alloc/quick-lru/-/quick-lru-5.2.0.tgz",
+      "integrity": "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==",
+      "dev": true,
+      "license": "MIT",
+      "engines": {
+        "node": ">=10"
+      },
+      "funding": {
+        "url": "https://github.com/sponsors/sindresorhus"
+      }
+    },
+    "node_modules/@emnapi/core": {
+      "version": "1.4.5",
+      "resolved": "https://registry.npmjs.org/@emnapi/core/-/core-1.4.5.tgz",
+      "integrity": "sha512-XsLw1dEOpkSX/WucdqUhPWP7hDxSvZiY+fsUC14h+FtQ2Ifni4znbBt8punRX+Uj2JG/uDb8nEHVKvrVlvdZ5Q==",
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "dependencies": {
+        "@emnapi/wasi-threads": "1.0.4",
+        "tslib": "^2.4.0"
+      }
+    },
+    "node_modules/@emnapi/runtime": {
+      "version": "1.4.5",
+      "resolved": "https://registry.npmjs.org/@emnapi/runtime/-/runtime-1.4.5.tgz",
+      "integrity": "sha512-++LApOtY0pEEz1zrd9vy1/zXVaVJJ/EbAF3u0fXIzPJEDtnITsBGbbK0EkM72amhl/R5b+5xx0Y/QhcVOpuulg==",
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "dependencies": {
+        "tslib": "^2.4.0"
+      }
+    },
+    "node_modules/@emnapi/wasi-threads": {
+      "version": "1.0.4",
+      "resolved": "https://registry.npmjs.org/@emnapi/wasi-threads/-/wasi-threads-1.0.4.tgz",
+      "integrity": "sha512-PJR+bOmMOPH8AtcTGAyYNiuJ3/Fcoj2XN/gBEWzDIKh254XO+mM9XoXHk5GNEhodxeMznbg7BlRojVbKN+gC6g==",
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "dependencies": {
+        "tslib": "^2.4.0"
+      }
+    },
+    "node_modules/@isaacs/fs-minipass": {
+      "version": "4.0.1",
+      "resolved": "https://registry.npmjs.org/@isaacs/fs-minipass/-/fs-minipass-4.0.1.tgz",
+      "integrity": "sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==",
+      "dev": true,
+      "license": "ISC",
+      "dependencies": {
+        "minipass": "^7.0.4"
+      },
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "node_modules/@jridgewell/gen-mapping": {
+      "version": "0.3.13",
+      "resolved": "https://registry.npmjs.org/@jridgewell/gen-mapping/-/gen-mapping-0.3.13.tgz",
+      "integrity": "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "@jridgewell/sourcemap-codec": "^1.5.0",
+        "@jridgewell/trace-mapping": "^0.3.24"
+      }
+    },
+    "node_modules/@jridgewell/remapping": {
+      "version": "2.3.5",
+      "resolved": "https://registry.npmjs.org/@jridgewell/remapping/-/remapping-2.3.5.tgz",
+      "integrity": "sha512-LI9u/+laYG4Ds1TDKSJW2YPrIlcVYOwi2fUC6xB43lueCjgxV4lffOCZCtYFiH6TNOX+tQKXx97T4IKHbhyHEQ==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "@jridgewell/gen-mapping": "^0.3.5",
+        "@jridgewell/trace-mapping": "^0.3.24"
+      }
+    },
+    "node_modules/@jridgewell/resolve-uri": {
+      "version": "3.1.2",
+      "resolved": "https://registry.npmjs.org/@jridgewell/resolve-uri/-/resolve-uri-3.1.2.tgz",
+      "integrity": "sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==",
+      "dev": true,
+      "license": "MIT",
+      "engines": {
+        "node": ">=6.0.0"
+      }
+    },
+    "node_modules/@jridgewell/sourcemap-codec": {
+      "version": "1.5.5",
+      "resolved": "https://registry.npmjs.org/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.5.5.tgz",
+      "integrity": "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==",
+      "dev": true,
+      "license": "MIT"
+    },
+    "node_modules/@jridgewell/trace-mapping": {
+      "version": "0.3.30",
+      "resolved": "https://registry.npmjs.org/@jridgewell/trace-mapping/-/trace-mapping-0.3.30.tgz",
+      "integrity": "sha512-GQ7Nw5G2lTu/BtHTKfXhKHok2WGetd4XYcVKGx00SjAk8GMwgJM3zr6zORiPGuOE+/vkc90KtTosSSvaCjKb2Q==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "@jridgewell/resolve-uri": "^3.1.0",
+        "@jridgewell/sourcemap-codec": "^1.4.14"
+      }
+    },
+    "node_modules/@napi-rs/wasm-runtime": {
+      "version": "0.2.12",
+      "resolved": "https://registry.npmjs.org/@napi-rs/wasm-runtime/-/wasm-runtime-0.2.12.tgz",
+      "integrity": "sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ==",
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "dependencies": {
+        "@emnapi/core": "^1.4.3",
+        "@emnapi/runtime": "^1.4.3",
+        "@tybys/wasm-util": "^0.10.0"
+      }
+    },
+    "node_modules/@next/env": {
+      "version": "14.2.31",
+      "resolved": "https://registry.npmjs.org/@next/env/-/env-14.2.31.tgz",
+      "integrity": "sha512-X8VxxYL6VuezrG82h0pUA1V+DuTSJp7Nv15bxq3ivrFqZLjx81rfeHMWOE9T0jm1n3DtHGv8gdn6B0T0kr0D3Q==",
+      "license": "MIT"
+    },
+    "node_modules/@next/swc-darwin-arm64": {
+      "version": "14.2.31",
+      "resolved": "https://registry.npmjs.org/@next/swc-darwin-arm64/-/swc-darwin-arm64-14.2.31.tgz",
+      "integrity": "sha512-dTHKfaFO/xMJ3kzhXYgf64VtV6MMwDs2viedDOdP+ezd0zWMOQZkxcwOfdcQeQCpouTr9b+xOqMCUXxgLizl8Q==",
+      "cpu": [
+        "arm64"
+      ],
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "darwin"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@next/swc-darwin-x64": {
+      "version": "14.2.31",
+      "resolved": "https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-14.2.31.tgz",
+      "integrity": "sha512-iSavebQgeMukUAfjfW8Fi2Iz01t95yxRl2w2wCzjD91h5In9la99QIDKcKSYPfqLjCgwz3JpIWxLG6LM/sxL4g==",
+      "cpu": [
+        "x64"
+      ],
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "darwin"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@next/swc-linux-arm64-gnu": {
+      "version": "14.2.31",
+      "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-gnu/-/swc-linux-arm64-gnu-14.2.31.tgz",
+      "integrity": "sha512-XJb3/LURg1u1SdQoopG6jDL2otxGKChH2UYnUTcby4izjM0il7ylBY5TIA7myhvHj9lG5pn9F2nR2s3i8X9awQ==",
+      "cpu": [
+        "arm64"
+      ],
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@next/swc-linux-arm64-musl": {
+      "version": "14.2.31",
+      "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-musl/-/swc-linux-arm64-musl-14.2.31.tgz",
+      "integrity": "sha512-IInDAcchNCu3BzocdqdCv1bKCmUVO/bKJHnBFTeq3svfaWpOPewaLJ2Lu3GL4yV76c/86ZvpBbG/JJ1lVIs5MA==",
+      "cpu": [
+        "arm64"
+      ],
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@next/swc-linux-x64-gnu": {
+      "version": "14.2.31",
+      "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-14.2.31.tgz",
+      "integrity": "sha512-YTChJL5/9e4NXPKW+OJzsQa42RiWUNbE+k+ReHvA+lwXk+bvzTsVQboNcezWOuCD+p/J+ntxKOB/81o0MenBhw==",
+      "cpu": [
+        "x64"
+      ],
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@next/swc-linux-x64-musl": {
+      "version": "14.2.31",
+      "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-14.2.31.tgz",
+      "integrity": "sha512-A0JmD1y4q/9ufOGEAhoa60Sof++X10PEoiWOH0gZ2isufWZeV03NnyRlRmJpRQWGIbRkJUmBo9I3Qz5C10vx4w==",
+      "cpu": [
+        "x64"
+      ],
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@next/swc-win32-arm64-msvc": {
+      "version": "14.2.31",
+      "resolved": "https://registry.npmjs.org/@next/swc-win32-arm64-msvc/-/swc-win32-arm64-msvc-14.2.31.tgz",
+      "integrity": "sha512-nowJ5GbMeDOMzbTm29YqrdrD6lTM8qn2wnZfGpYMY7SZODYYpaJHH1FJXE1l1zWICHR+WfIMytlTDBHu10jb8A==",
+      "cpu": [
+        "arm64"
+      ],
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "win32"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@next/swc-win32-ia32-msvc": {
+      "version": "14.2.31",
+      "resolved": "https://registry.npmjs.org/@next/swc-win32-ia32-msvc/-/swc-win32-ia32-msvc-14.2.31.tgz",
+      "integrity": "sha512-pk9Bu4K0015anTS1OS9d/SpS0UtRObC+xe93fwnm7Gvqbv/W1ZbzhK4nvc96RURIQOux3P/bBH316xz8wjGSsA==",
+      "cpu": [
+        "ia32"
+      ],
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "win32"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@next/swc-win32-x64-msvc": {
+      "version": "14.2.31",
+      "resolved": "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-14.2.31.tgz",
+      "integrity": "sha512-LwFZd4JFnMHGceItR9+jtlMm8lGLU/IPkgjBBgYmdYSfalbHCiDpjMYtgDQ2wtwiAOSJOCyFI4m8PikrsDyA6Q==",
+      "cpu": [
+        "x64"
+      ],
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "win32"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@supabase/auth-js": {
+      "version": "2.71.1",
+      "resolved": "https://registry.npmjs.org/@supabase/auth-js/-/auth-js-2.71.1.tgz",
+      "integrity": "sha512-mMIQHBRc+SKpZFRB2qtupuzulaUhFYupNyxqDj5Jp/LyPvcWvjaJzZzObv6URtL/O6lPxkanASnotGtNpS3H2Q==",
+      "license": "MIT",
+      "dependencies": {
+        "@supabase/node-fetch": "^2.6.14"
+      }
+    },
+    "node_modules/@supabase/functions-js": {
+      "version": "2.4.5",
+      "resolved": "https://registry.npmjs.org/@supabase/functions-js/-/functions-js-2.4.5.tgz",
+      "integrity": "sha512-v5GSqb9zbosquTo6gBwIiq7W9eQ7rE5QazsK/ezNiQXdCbY+bH8D9qEaBIkhVvX4ZRW5rP03gEfw5yw9tiq4EQ==",
+      "license": "MIT",
+      "dependencies": {
+        "@supabase/node-fetch": "^2.6.14"
+      }
+    },
+    "node_modules/@supabase/node-fetch": {
+      "version": "2.6.15",
+      "resolved": "https://registry.npmjs.org/@supabase/node-fetch/-/node-fetch-2.6.15.tgz",
+      "integrity": "sha512-1ibVeYUacxWYi9i0cf5efil6adJ9WRyZBLivgjs+AUpewx1F3xPi7gLgaASI2SmIQxPoCEjAsLAzKPgMJVgOUQ==",
+      "license": "MIT",
+      "dependencies": {
+        "whatwg-url": "^5.0.0"
+      },
+      "engines": {
+        "node": "4.x || >=6.0.0"
+      }
+    },
+    "node_modules/@supabase/postgrest-js": {
+      "version": "1.19.4",
+      "resolved": "https://registry.npmjs.org/@supabase/postgrest-js/-/postgrest-js-1.19.4.tgz",
+      "integrity": "sha512-O4soKqKtZIW3olqmbXXbKugUtByD2jPa8kL2m2c1oozAO11uCcGrRhkZL0kVxjBLrXHE0mdSkFsMj7jDSfyNpw==",
+      "license": "MIT",
+      "dependencies": {
+        "@supabase/node-fetch": "^2.6.14"
+      }
+    },
+    "node_modules/@supabase/realtime-js": {
+      "version": "2.15.1",
+      "resolved": "https://registry.npmjs.org/@supabase/realtime-js/-/realtime-js-2.15.1.tgz",
+      "integrity": "sha512-edRFa2IrQw50kNntvUyS38hsL7t2d/psah6om6aNTLLcWem0R6bOUq7sk7DsGeSlNfuwEwWn57FdYSva6VddYw==",
+      "license": "MIT",
+      "dependencies": {
+        "@supabase/node-fetch": "^2.6.13",
+        "@types/phoenix": "^1.6.6",
+        "@types/ws": "^8.18.1",
+        "ws": "^8.18.2"
+      }
+    },
+    "node_modules/@supabase/ssr": {
+      "version": "0.6.1",
+      "resolved": "https://registry.npmjs.org/@supabase/ssr/-/ssr-0.6.1.tgz",
+      "integrity": "sha512-QtQgEMvaDzr77Mk3vZ3jWg2/y+D8tExYF7vcJT+wQ8ysuvOeGGjYbZlvj5bHYsj/SpC0bihcisnwPrM4Gp5G4g==",
+      "license": "MIT",
+      "dependencies": {
+        "cookie": "^1.0.1"
+      },
+      "peerDependencies": {
+        "@supabase/supabase-js": "^2.43.4"
+      }
+    },
+    "node_modules/@supabase/storage-js": {
+      "version": "2.10.4",
+      "resolved": "https://registry.npmjs.org/@supabase/storage-js/-/storage-js-2.10.4.tgz",
+      "integrity": "sha512-cvL02GarJVFcNoWe36VBybQqTVRq6wQSOCvTS64C+eyuxOruFIm1utZAY0xi2qKtHJO3EjKaj8iWJKySusDmAQ==",
+      "license": "MIT",
+      "dependencies": {
+        "@supabase/node-fetch": "^2.6.14"
+      }
+    },
+    "node_modules/@supabase/supabase-js": {
+      "version": "2.55.0",
+      "resolved": "https://registry.npmjs.org/@supabase/supabase-js/-/supabase-js-2.55.0.tgz",
+      "integrity": "sha512-Y1uV4nEMjQV1x83DGn7+Z9LOisVVRlY1geSARrUHbXWgbyKLZ6/08dvc0Us1r6AJ4tcKpwpCZWG9yDQYo1JgHg==",
+      "license": "MIT",
+      "dependencies": {
+        "@supabase/auth-js": "2.71.1",
+        "@supabase/functions-js": "2.4.5",
+        "@supabase/node-fetch": "2.6.15",
+        "@supabase/postgrest-js": "1.19.4",
+        "@supabase/realtime-js": "2.15.1",
+        "@supabase/storage-js": "^2.10.4"
+      }
+    },
+    "node_modules/@swc/counter": {
+      "version": "0.1.3",
+      "resolved": "https://registry.npmjs.org/@swc/counter/-/counter-0.1.3.tgz",
+      "integrity": "sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==",
+      "license": "Apache-2.0"
+    },
+    "node_modules/@swc/helpers": {
+      "version": "0.5.5",
+      "resolved": "https://registry.npmjs.org/@swc/helpers/-/helpers-0.5.5.tgz",
+      "integrity": "sha512-KGYxvIOXcceOAbEk4bi/dVLEK9z8sZ0uBB3Il5b1rhfClSpcX0yfRO0KmTkqR2cnQDymwLB+25ZyMzICg/cm/A==",
+      "license": "Apache-2.0",
+      "dependencies": {
+        "@swc/counter": "^0.1.3",
+        "tslib": "^2.4.0"
+      }
+    },
+    "node_modules/@tailwindcss/node": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/node/-/node-4.1.12.tgz",
+      "integrity": "sha512-3hm9brwvQkZFe++SBt+oLjo4OLDtkvlE8q2WalaD/7QWaeM7KEJbAiY/LJZUaCs7Xa8aUu4xy3uoyX4q54UVdQ==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "@jridgewell/remapping": "^2.3.4",
+        "enhanced-resolve": "^5.18.3",
+        "jiti": "^2.5.1",
+        "lightningcss": "1.30.1",
+        "magic-string": "^0.30.17",
+        "source-map-js": "^1.2.1",
+        "tailwindcss": "4.1.12"
+      }
+    },
+    "node_modules/@tailwindcss/oxide": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide/-/oxide-4.1.12.tgz",
+      "integrity": "sha512-gM5EoKHW/ukmlEtphNwaGx45fGoEmP10v51t9unv55voWh6WrOL19hfuIdo2FjxIaZzw776/BUQg7Pck++cIVw==",
+      "dev": true,
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "detect-libc": "^2.0.4",
+        "tar": "^7.4.3"
+      },
+      "engines": {
+        "node": ">= 10"
+      },
+      "optionalDependencies": {
+        "@tailwindcss/oxide-android-arm64": "4.1.12",
+        "@tailwindcss/oxide-darwin-arm64": "4.1.12",
+        "@tailwindcss/oxide-darwin-x64": "4.1.12",
+        "@tailwindcss/oxide-freebsd-x64": "4.1.12",
+        "@tailwindcss/oxide-linux-arm-gnueabihf": "4.1.12",
+        "@tailwindcss/oxide-linux-arm64-gnu": "4.1.12",
+        "@tailwindcss/oxide-linux-arm64-musl": "4.1.12",
+        "@tailwindcss/oxide-linux-x64-gnu": "4.1.12",
+        "@tailwindcss/oxide-linux-x64-musl": "4.1.12",
+        "@tailwindcss/oxide-wasm32-wasi": "4.1.12",
+        "@tailwindcss/oxide-win32-arm64-msvc": "4.1.12",
+        "@tailwindcss/oxide-win32-x64-msvc": "4.1.12"
+      }
+    },
+    "node_modules/@tailwindcss/oxide-android-arm64": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-android-arm64/-/oxide-android-arm64-4.1.12.tgz",
+      "integrity": "sha512-oNY5pq+1gc4T6QVTsZKwZaGpBb2N1H1fsc1GD4o7yinFySqIuRZ2E4NvGasWc6PhYJwGK2+5YT1f9Tp80zUQZQ==",
+      "cpu": [
+        "arm64"
+      ],
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "android"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@tailwindcss/oxide-darwin-arm64": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-darwin-arm64/-/oxide-darwin-arm64-4.1.12.tgz",
+      "integrity": "sha512-cq1qmq2HEtDV9HvZlTtrj671mCdGB93bVY6J29mwCyaMYCP/JaUBXxrQQQm7Qn33AXXASPUb2HFZlWiiHWFytw==",
+      "cpu": [
+        "arm64"
+      ],
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "darwin"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@tailwindcss/oxide-darwin-x64": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-darwin-x64/-/oxide-darwin-x64-4.1.12.tgz",
+      "integrity": "sha512-6UCsIeFUcBfpangqlXay9Ffty9XhFH1QuUFn0WV83W8lGdX8cD5/+2ONLluALJD5+yJ7k8mVtwy3zMZmzEfbLg==",
+      "cpu": [
+        "x64"
+      ],
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "darwin"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@tailwindcss/oxide-freebsd-x64": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-freebsd-x64/-/oxide-freebsd-x64-4.1.12.tgz",
+      "integrity": "sha512-JOH/f7j6+nYXIrHobRYCtoArJdMJh5zy5lr0FV0Qu47MID/vqJAY3r/OElPzx1C/wdT1uS7cPq+xdYYelny1ww==",
+      "cpu": [
+        "x64"
+      ],
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "freebsd"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@tailwindcss/oxide-linux-arm-gnueabihf": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-linux-arm-gnueabihf/-/oxide-linux-arm-gnueabihf-4.1.12.tgz",
+      "integrity": "sha512-v4Ghvi9AU1SYgGr3/j38PD8PEe6bRfTnNSUE3YCMIRrrNigCFtHZ2TCm8142X8fcSqHBZBceDx+JlFJEfNg5zQ==",
+      "cpu": [
+        "arm"
+      ],
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@tailwindcss/oxide-linux-arm64-gnu": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-linux-arm64-gnu/-/oxide-linux-arm64-gnu-4.1.12.tgz",
+      "integrity": "sha512-YP5s1LmetL9UsvVAKusHSyPlzSRqYyRB0f+Kl/xcYQSPLEw/BvGfxzbH+ihUciePDjiXwHh+p+qbSP3SlJw+6g==",
+      "cpu": [
+        "arm64"
+      ],
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@tailwindcss/oxide-linux-arm64-musl": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-linux-arm64-musl/-/oxide-linux-arm64-musl-4.1.12.tgz",
+      "integrity": "sha512-V8pAM3s8gsrXcCv6kCHSuwyb/gPsd863iT+v1PGXC4fSL/OJqsKhfK//v8P+w9ThKIoqNbEnsZqNy+WDnwQqCA==",
+      "cpu": [
+        "arm64"
+      ],
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@tailwindcss/oxide-linux-x64-gnu": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-linux-x64-gnu/-/oxide-linux-x64-gnu-4.1.12.tgz",
+      "integrity": "sha512-xYfqYLjvm2UQ3TZggTGrwxjYaLB62b1Wiysw/YE3Yqbh86sOMoTn0feF98PonP7LtjsWOWcXEbGqDL7zv0uW8Q==",
+      "cpu": [
+        "x64"
+      ],
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@tailwindcss/oxide-linux-x64-musl": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-linux-x64-musl/-/oxide-linux-x64-musl-4.1.12.tgz",
+      "integrity": "sha512-ha0pHPamN+fWZY7GCzz5rKunlv9L5R8kdh+YNvP5awe3LtuXb5nRi/H27GeL2U+TdhDOptU7T6Is7mdwh5Ar3A==",
+      "cpu": [
+        "x64"
+      ],
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@tailwindcss/oxide-wasm32-wasi": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-wasm32-wasi/-/oxide-wasm32-wasi-4.1.12.tgz",
+      "integrity": "sha512-4tSyu3dW+ktzdEpuk6g49KdEangu3eCYoqPhWNsZgUhyegEda3M9rG0/j1GV/JjVVsj+lG7jWAyrTlLzd/WEBg==",
+      "bundleDependencies": [
+        "@napi-rs/wasm-runtime",
+        "@emnapi/core",
+        "@emnapi/runtime",
+        "@tybys/wasm-util",
+        "@emnapi/wasi-threads",
+        "tslib"
+      ],
+      "cpu": [
+        "wasm32"
+      ],
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "dependencies": {
+        "@emnapi/core": "^1.4.5",
+        "@emnapi/runtime": "^1.4.5",
+        "@emnapi/wasi-threads": "^1.0.4",
+        "@napi-rs/wasm-runtime": "^0.2.12",
+        "@tybys/wasm-util": "^0.10.0",
+        "tslib": "^2.8.0"
+      },
+      "engines": {
+        "node": ">=14.0.0"
+      }
+    },
+    "node_modules/@tailwindcss/oxide-win32-arm64-msvc": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-win32-arm64-msvc/-/oxide-win32-arm64-msvc-4.1.12.tgz",
+      "integrity": "sha512-iGLyD/cVP724+FGtMWslhcFyg4xyYyM+5F4hGvKA7eifPkXHRAUDFaimu53fpNg9X8dfP75pXx/zFt/jlNF+lg==",
+      "cpu": [
+        "arm64"
+      ],
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "win32"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@tailwindcss/oxide-win32-x64-msvc": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-win32-x64-msvc/-/oxide-win32-x64-msvc-4.1.12.tgz",
+      "integrity": "sha512-NKIh5rzw6CpEodv/++r0hGLlfgT/gFN+5WNdZtvh6wpU2BpGNgdjvj6H2oFc8nCM839QM1YOhjpgbAONUb4IxA==",
+      "cpu": [
+        "x64"
+      ],
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "os": [
+        "win32"
+      ],
+      "engines": {
+        "node": ">= 10"
+      }
+    },
+    "node_modules/@tailwindcss/postcss": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/postcss/-/postcss-4.1.12.tgz",
+      "integrity": "sha512-5PpLYhCAwf9SJEeIsSmCDLgyVfdBhdBpzX1OJ87anT9IVR0Z9pjM0FNixCAUAHGnMBGB8K99SwAheXrT0Kh6QQ==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "@alloc/quick-lru": "^5.2.0",
+        "@tailwindcss/node": "4.1.12",
+        "@tailwindcss/oxide": "4.1.12",
+        "postcss": "^8.4.41",
+        "tailwindcss": "4.1.12"
+      }
+    },
+    "node_modules/@tybys/wasm-util": {
+      "version": "0.10.0",
+      "resolved": "https://registry.npmjs.org/@tybys/wasm-util/-/wasm-util-0.10.0.tgz",
+      "integrity": "sha512-VyyPYFlOMNylG45GoAe0xDoLwWuowvf92F9kySqzYh8vmYm7D2u4iUJKa1tOUpS70Ku13ASrOkS4ScXFsTaCNQ==",
+      "dev": true,
+      "license": "MIT",
+      "optional": true,
+      "dependencies": {
+        "tslib": "^2.4.0"
+      }
+    },
+    "node_modules/@types/node": {
+      "version": "24.3.0",
+      "resolved": "https://registry.npmjs.org/@types/node/-/node-24.3.0.tgz",
+      "integrity": "sha512-aPTXCrfwnDLj4VvXrm+UUCQjNEvJgNA8s5F1cvwQU+3KNltTOkBm1j30uNLyqqPNe7gE3KFzImYoZEfLhp4Yow==",
+      "license": "MIT",
+      "dependencies": {
+        "undici-types": "~7.10.0"
+      }
+    },
+    "node_modules/@types/phoenix": {
+      "version": "1.6.6",
+      "resolved": "https://registry.npmjs.org/@types/phoenix/-/phoenix-1.6.6.tgz",
+      "integrity": "sha512-PIzZZlEppgrpoT2QgbnDU+MMzuR6BbCjllj0bM70lWoejMeNJAxCchxnv7J3XFkI8MpygtRpzXrIlmWUBclP5A==",
+      "license": "MIT"
+    },
+    "node_modules/@types/prop-types": {
+      "version": "15.7.15",
+      "resolved": "https://registry.npmjs.org/@types/prop-types/-/prop-types-15.7.15.tgz",
+      "integrity": "sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==",
+      "dev": true,
+      "license": "MIT"
+    },
+    "node_modules/@types/react": {
+      "version": "18.3.23",
+      "resolved": "https://registry.npmjs.org/@types/react/-/react-18.3.23.tgz",
+      "integrity": "sha512-/LDXMQh55EzZQ0uVAZmKKhfENivEvWz6E+EYzh+/MCjMhNsotd+ZHhBGIjFDTi6+fz0OhQQQLbTgdQIxxCsC0w==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "@types/prop-types": "*",
+        "csstype": "^3.0.2"
+      }
+    },
+    "node_modules/@types/react-dom": {
+      "version": "18.3.7",
+      "resolved": "https://registry.npmjs.org/@types/react-dom/-/react-dom-18.3.7.tgz",
+      "integrity": "sha512-MEe3UeoENYVFXzoXEWsvcpg6ZvlrFNlOQ7EOsvhI3CfAXwzPfO8Qwuxd40nepsYKqyyVQnTdEfv68q91yLcKrQ==",
+      "dev": true,
+      "license": "MIT",
+      "peerDependencies": {
+        "@types/react": "^18.0.0"
+      }
+    },
+    "node_modules/@types/ws": {
+      "version": "8.18.1",
+      "resolved": "https://registry.npmjs.org/@types/ws/-/ws-8.18.1.tgz",
+      "integrity": "sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==",
+      "license": "MIT",
+      "dependencies": {
+        "@types/node": "*"
+      }
+    },
+    "node_modules/autoprefixer": {
+      "version": "10.4.21",
+      "resolved": "https://registry.npmjs.org/autoprefixer/-/autoprefixer-10.4.21.tgz",
+      "integrity": "sha512-O+A6LWV5LDHSJD3LjHYoNi4VLsj/Whi7k6zG12xTYaU4cQ8oxQGckXNX8cRHK5yOZ/ppVHe0ZBXGzSV9jXdVbQ==",
+      "funding": [
+        {
+          "type": "opencollective",
+          "url": "https://opencollective.com/postcss/"
+        },
+        {
+          "type": "tidelift",
+          "url": "https://tidelift.com/funding/github/npm/autoprefixer"
+        },
+        {
+          "type": "github",
+          "url": "https://github.com/sponsors/ai"
+        }
+      ],
+      "license": "MIT",
+      "dependencies": {
+        "browserslist": "^4.24.4",
+        "caniuse-lite": "^1.0.30001702",
+        "fraction.js": "^4.3.7",
+        "normalize-range": "^0.1.2",
+        "picocolors": "^1.1.1",
+        "postcss-value-parser": "^4.2.0"
+      },
+      "bin": {
+        "autoprefixer": "bin/autoprefixer"
+      },
+      "engines": {
+        "node": "^10 || ^12 || >=14"
+      },
+      "peerDependencies": {
+        "postcss": "^8.1.0"
+      }
+    },
+    "node_modules/browserslist": {
+      "version": "4.25.2",
+      "resolved": "https://registry.npmjs.org/browserslist/-/browserslist-4.25.2.tgz",
+      "integrity": "sha512-0si2SJK3ooGzIawRu61ZdPCO1IncZwS8IzuX73sPZsXW6EQ/w/DAfPyKI8l1ETTCr2MnvqWitmlCUxgdul45jA==",
+      "funding": [
+        {
+          "type": "opencollective",
+          "url": "https://opencollective.com/browserslist"
+        },
+        {
+          "type": "tidelift",
+          "url": "https://tidelift.com/funding/github/npm/browserslist"
+        },
+        {
+          "type": "github",
+          "url": "https://github.com/sponsors/ai"
+        }
+      ],
+      "license": "MIT",
+      "dependencies": {
+        "caniuse-lite": "^1.0.30001733",
+        "electron-to-chromium": "^1.5.199",
+        "node-releases": "^2.0.19",
+        "update-browserslist-db": "^1.1.3"
+      },
+      "bin": {
+        "browserslist": "cli.js"
+      },
+      "engines": {
+        "node": "^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7"
+      }
+    },
+    "node_modules/busboy": {
+      "version": "1.6.0",
+      "resolved": "https://registry.npmjs.org/busboy/-/busboy-1.6.0.tgz",
+      "integrity": "sha512-8SFQbg/0hQ9xy3UNTB0YEnsNBbWfhf7RtnzpL7TkBiTBRfrQ9Fxcnz7VJsleJpyp6rVLvXiuORqjlHi5q+PYuA==",
+      "dependencies": {
+        "streamsearch": "^1.1.0"
+      },
+      "engines": {
+        "node": ">=10.16.0"
+      }
+    },
+    "node_modules/caniuse-lite": {
+      "version": "1.0.30001733",
+      "resolved": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001733.tgz",
+      "integrity": "sha512-e4QKw/O2Kavj2VQTKZWrwzkt3IxOmIlU6ajRb6LP64LHpBo1J67k2Hi4Vu/TgJWsNtynurfS0uK3MaUTCPfu5Q==",
+      "funding": [
+        {
+          "type": "opencollective",
+          "url": "https://opencollective.com/browserslist"
+        },
+        {
+          "type": "tidelift",
+          "url": "https://tidelift.com/funding/github/npm/caniuse-lite"
+        },
+        {
+          "type": "github",
+          "url": "https://github.com/sponsors/ai"
+        }
+      ],
+      "license": "CC-BY-4.0"
+    },
+    "node_modules/chownr": {
+      "version": "3.0.0",
+      "resolved": "https://registry.npmjs.org/chownr/-/chownr-3.0.0.tgz",
+      "integrity": "sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==",
+      "dev": true,
+      "license": "BlueOak-1.0.0",
+      "engines": {
+        "node": ">=18"
+      }
+    },
+    "node_modules/client-only": {
+      "version": "0.0.1",
+      "resolved": "https://registry.npmjs.org/client-only/-/client-only-0.0.1.tgz",
+      "integrity": "sha512-IV3Ou0jSMzZrd3pZ48nLkT9DA7Ag1pnPzaiQhpW7c3RbcqqzvzzVu+L8gfqMp/8IM2MQtSiqaCxrrcfu8I8rMA==",
+      "license": "MIT"
+    },
+    "node_modules/cookie": {
+      "version": "1.0.2",
+      "resolved": "https://registry.npmjs.org/cookie/-/cookie-1.0.2.tgz",
+      "integrity": "sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==",
+      "license": "MIT",
+      "engines": {
+        "node": ">=18"
+      }
+    },
+    "node_modules/csstype": {
+      "version": "3.1.3",
+      "resolved": "https://registry.npmjs.org/csstype/-/csstype-3.1.3.tgz",
+      "integrity": "sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==",
+      "dev": true,
+      "license": "MIT"
+    },
+    "node_modules/detect-libc": {
+      "version": "2.0.4",
+      "resolved": "https://registry.npmjs.org/detect-libc/-/detect-libc-2.0.4.tgz",
+      "integrity": "sha512-3UDv+G9CsCKO1WKMGw9fwq/SWJYbI0c5Y7LU1AXYoDdbhE2AHQ6N6Nb34sG8Fj7T5APy8qXDCKuuIHd1BR0tVA==",
+      "dev": true,
+      "license": "Apache-2.0",
+      "engines": {
+        "node": ">=8"
+      }
+    },
+    "node_modules/electron-to-chromium": {
+      "version": "1.5.200",
+      "resolved": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.200.tgz",
+      "integrity": "sha512-rFCxROw7aOe4uPTfIAx+rXv9cEcGx+buAF4npnhtTqCJk5KDFRnh3+KYj7rdVh6lsFt5/aPs+Irj9rZ33WMA7w==",
+      "license": "ISC"
+    },
+    "node_modules/enhanced-resolve": {
+      "version": "5.18.3",
+      "resolved": "https://registry.npmjs.org/enhanced-resolve/-/enhanced-resolve-5.18.3.tgz",
+      "integrity": "sha512-d4lC8xfavMeBjzGr2vECC3fsGXziXZQyJxD868h2M/mBI3PwAuODxAkLkq5HYuvrPYcUtiLzsTo8U3PgX3Ocww==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "graceful-fs": "^4.2.4",
+        "tapable": "^2.2.0"
+      },
+      "engines": {
+        "node": ">=10.13.0"
+      }
+    },
+    "node_modules/escalade": {
+      "version": "3.2.0",
+      "resolved": "https://registry.npmjs.org/escalade/-/escalade-3.2.0.tgz",
+      "integrity": "sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==",
+      "license": "MIT",
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/fraction.js": {
+      "version": "4.3.7",
+      "resolved": "https://registry.npmjs.org/fraction.js/-/fraction.js-4.3.7.tgz",
+      "integrity": "sha512-ZsDfxO51wGAXREY55a7la9LScWpwv9RxIrYABrlvOFBlH/ShPnrtsXeuUIfXKKOVicNxQ+o8JTbJvjS4M89yew==",
+      "license": "MIT",
+      "engines": {
+        "node": "*"
+      },
+      "funding": {
+        "type": "patreon",
+        "url": "https://github.com/sponsors/rawify"
+      }
+    },
+    "node_modules/graceful-fs": {
+      "version": "4.2.11",
+      "resolved": "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.11.tgz",
+      "integrity": "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==",
+      "license": "ISC"
+    },
+    "node_modules/jiti": {
+      "version": "2.5.1",
+      "resolved": "https://registry.npmjs.org/jiti/-/jiti-2.5.1.tgz",
+      "integrity": "sha512-twQoecYPiVA5K/h6SxtORw/Bs3ar+mLUtoPSc7iMXzQzK8d7eJ/R09wmTwAjiamETn1cXYPGfNnu7DMoHgu12w==",
+      "dev": true,
+      "license": "MIT",
+      "bin": {
+        "jiti": "lib/jiti-cli.mjs"
+      }
+    },
+    "node_modules/js-tokens": {
+      "version": "4.0.0",
+      "resolved": "https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz",
+      "integrity": "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==",
+      "license": "MIT"
+    },
+    "node_modules/lightningcss": {
+      "version": "1.30.1",
+      "resolved": "https://registry.npmjs.org/lightningcss/-/lightningcss-1.30.1.tgz",
+      "integrity": "sha512-xi6IyHML+c9+Q3W0S4fCQJOym42pyurFiJUHEcEyHS0CeKzia4yZDEsLlqOFykxOdHpNy0NmvVO31vcSqAxJCg==",
+      "dev": true,
+      "license": "MPL-2.0",
+      "dependencies": {
+        "detect-libc": "^2.0.3"
+      },
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "funding": {
+        "type": "opencollective",
+        "url": "https://opencollective.com/parcel"
+      },
+      "optionalDependencies": {
+        "lightningcss-darwin-arm64": "1.30.1",
+        "lightningcss-darwin-x64": "1.30.1",
+        "lightningcss-freebsd-x64": "1.30.1",
+        "lightningcss-linux-arm-gnueabihf": "1.30.1",
+        "lightningcss-linux-arm64-gnu": "1.30.1",
+        "lightningcss-linux-arm64-musl": "1.30.1",
+        "lightningcss-linux-x64-gnu": "1.30.1",
+        "lightningcss-linux-x64-musl": "1.30.1",
+        "lightningcss-win32-arm64-msvc": "1.30.1",
+        "lightningcss-win32-x64-msvc": "1.30.1"
+      }
+    },
+    "node_modules/lightningcss-darwin-arm64": {
+      "version": "1.30.1",
+      "resolved": "https://registry.npmjs.org/lightningcss-darwin-arm64/-/lightningcss-darwin-arm64-1.30.1.tgz",
+      "integrity": "sha512-c8JK7hyE65X1MHMN+Viq9n11RRC7hgin3HhYKhrMyaXflk5GVplZ60IxyoVtzILeKr+xAJwg6zK6sjTBJ0FKYQ==",
+      "cpu": [
+        "arm64"
+      ],
+      "dev": true,
+      "license": "MPL-2.0",
+      "optional": true,
+      "os": [
+        "darwin"
+      ],
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "funding": {
+        "type": "opencollective",
+        "url": "https://opencollective.com/parcel"
+      }
+    },
+    "node_modules/lightningcss-darwin-x64": {
+      "version": "1.30.1",
+      "resolved": "https://registry.npmjs.org/lightningcss-darwin-x64/-/lightningcss-darwin-x64-1.30.1.tgz",
+      "integrity": "sha512-k1EvjakfumAQoTfcXUcHQZhSpLlkAuEkdMBsI/ivWw9hL+7FtilQc0Cy3hrx0AAQrVtQAbMI7YjCgYgvn37PzA==",
+      "cpu": [
+        "x64"
+      ],
+      "dev": true,
+      "license": "MPL-2.0",
+      "optional": true,
+      "os": [
+        "darwin"
+      ],
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "funding": {
+        "type": "opencollective",
+        "url": "https://opencollective.com/parcel"
+      }
+    },
+    "node_modules/lightningcss-freebsd-x64": {
+      "version": "1.30.1",
+      "resolved": "https://registry.npmjs.org/lightningcss-freebsd-x64/-/lightningcss-freebsd-x64-1.30.1.tgz",
+      "integrity": "sha512-kmW6UGCGg2PcyUE59K5r0kWfKPAVy4SltVeut+umLCFoJ53RdCUWxcRDzO1eTaxf/7Q2H7LTquFHPL5R+Gjyig==",
+      "cpu": [
+        "x64"
+      ],
+      "dev": true,
+      "license": "MPL-2.0",
+      "optional": true,
+      "os": [
+        "freebsd"
+      ],
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "funding": {
+        "type": "opencollective",
+        "url": "https://opencollective.com/parcel"
+      }
+    },
+    "node_modules/lightningcss-linux-arm-gnueabihf": {
+      "version": "1.30.1",
+      "resolved": "https://registry.npmjs.org/lightningcss-linux-arm-gnueabihf/-/lightningcss-linux-arm-gnueabihf-1.30.1.tgz",
+      "integrity": "sha512-MjxUShl1v8pit+6D/zSPq9S9dQ2NPFSQwGvxBCYaBYLPlCWuPh9/t1MRS8iUaR8i+a6w7aps+B4N0S1TYP/R+Q==",
+      "cpu": [
+        "arm"
+      ],
+      "dev": true,
+      "license": "MPL-2.0",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "funding": {
+        "type": "opencollective",
+        "url": "https://opencollective.com/parcel"
+      }
+    },
+    "node_modules/lightningcss-linux-arm64-gnu": {
+      "version": "1.30.1",
+      "resolved": "https://registry.npmjs.org/lightningcss-linux-arm64-gnu/-/lightningcss-linux-arm64-gnu-1.30.1.tgz",
+      "integrity": "sha512-gB72maP8rmrKsnKYy8XUuXi/4OctJiuQjcuqWNlJQ6jZiWqtPvqFziskH3hnajfvKB27ynbVCucKSm2rkQp4Bw==",
+      "cpu": [
+        "arm64"
+      ],
+      "dev": true,
+      "license": "MPL-2.0",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "funding": {
+        "type": "opencollective",
+        "url": "https://opencollective.com/parcel"
+      }
+    },
+    "node_modules/lightningcss-linux-arm64-musl": {
+      "version": "1.30.1",
+      "resolved": "https://registry.npmjs.org/lightningcss-linux-arm64-musl/-/lightningcss-linux-arm64-musl-1.30.1.tgz",
+      "integrity": "sha512-jmUQVx4331m6LIX+0wUhBbmMX7TCfjF5FoOH6SD1CttzuYlGNVpA7QnrmLxrsub43ClTINfGSYyHe2HWeLl5CQ==",
+      "cpu": [
+        "arm64"
+      ],
+      "dev": true,
+      "license": "MPL-2.0",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "funding": {
+        "type": "opencollective",
+        "url": "https://opencollective.com/parcel"
+      }
+    },
+    "node_modules/lightningcss-linux-x64-gnu": {
+      "version": "1.30.1",
+      "resolved": "https://registry.npmjs.org/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.30.1.tgz",
+      "integrity": "sha512-piWx3z4wN8J8z3+O5kO74+yr6ze/dKmPnI7vLqfSqI8bccaTGY5xiSGVIJBDd5K5BHlvVLpUB3S2YCfelyJ1bw==",
+      "cpu": [
+        "x64"
+      ],
+      "dev": true,
+      "license": "MPL-2.0",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "funding": {
+        "type": "opencollective",
+        "url": "https://opencollective.com/parcel"
+      }
+    },
+    "node_modules/lightningcss-linux-x64-musl": {
+      "version": "1.30.1",
+      "resolved": "https://registry.npmjs.org/lightningcss-linux-x64-musl/-/lightningcss-linux-x64-musl-1.30.1.tgz",
+      "integrity": "sha512-rRomAK7eIkL+tHY0YPxbc5Dra2gXlI63HL+v1Pdi1a3sC+tJTcFrHX+E86sulgAXeI7rSzDYhPSeHHjqFhqfeQ==",
+      "cpu": [
+        "x64"
+      ],
+      "dev": true,
+      "license": "MPL-2.0",
+      "optional": true,
+      "os": [
+        "linux"
+      ],
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "funding": {
+        "type": "opencollective",
+        "url": "https://opencollective.com/parcel"
+      }
+    },
+    "node_modules/lightningcss-win32-arm64-msvc": {
+      "version": "1.30.1",
+      "resolved": "https://registry.npmjs.org/lightningcss-win32-arm64-msvc/-/lightningcss-win32-arm64-msvc-1.30.1.tgz",
+      "integrity": "sha512-mSL4rqPi4iXq5YVqzSsJgMVFENoa4nGTT/GjO2c0Yl9OuQfPsIfncvLrEW6RbbB24WtZ3xP/2CCmI3tNkNV4oA==",
+      "cpu": [
+        "arm64"
+      ],
+      "dev": true,
+      "license": "MPL-2.0",
+      "optional": true,
+      "os": [
+        "win32"
+      ],
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "funding": {
+        "type": "opencollective",
+        "url": "https://opencollective.com/parcel"
+      }
+    },
+    "node_modules/lightningcss-win32-x64-msvc": {
+      "version": "1.30.1",
+      "resolved": "https://registry.npmjs.org/lightningcss-win32-x64-msvc/-/lightningcss-win32-x64-msvc-1.30.1.tgz",
+      "integrity": "sha512-PVqXh48wh4T53F/1CCu8PIPCxLzWyCnn/9T5W1Jpmdy5h9Cwd+0YQS6/LwhHXSafuc61/xg9Lv5OrCby6a++jg==",
+      "cpu": [
+        "x64"
+      ],
+      "dev": true,
+      "license": "MPL-2.0",
+      "optional": true,
+      "os": [
+        "win32"
+      ],
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "funding": {
+        "type": "opencollective",
+        "url": "https://opencollective.com/parcel"
+      }
+    },
+    "node_modules/loose-envify": {
+      "version": "1.4.0",
+      "resolved": "https://registry.npmjs.org/loose-envify/-/loose-envify-1.4.0.tgz",
+      "integrity": "sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==",
+      "license": "MIT",
+      "dependencies": {
+        "js-tokens": "^3.0.0 || ^4.0.0"
+      },
+      "bin": {
+        "loose-envify": "cli.js"
+      }
+    },
+    "node_modules/magic-string": {
+      "version": "0.30.17",
+      "resolved": "https://registry.npmjs.org/magic-string/-/magic-string-0.30.17.tgz",
+      "integrity": "sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "@jridgewell/sourcemap-codec": "^1.5.0"
+      }
+    },
+    "node_modules/minipass": {
+      "version": "7.1.2",
+      "resolved": "https://registry.npmjs.org/minipass/-/minipass-7.1.2.tgz",
+      "integrity": "sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==",
+      "dev": true,
+      "license": "ISC",
+      "engines": {
+        "node": ">=16 || 14 >=14.17"
+      }
+    },
+    "node_modules/minizlib": {
+      "version": "3.0.2",
+      "resolved": "https://registry.npmjs.org/minizlib/-/minizlib-3.0.2.tgz",
+      "integrity": "sha512-oG62iEk+CYt5Xj2YqI5Xi9xWUeZhDI8jjQmC5oThVH5JGCTgIjr7ciJDzC7MBzYd//WvR1OTmP5Q38Q8ShQtVA==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "minipass": "^7.1.2"
+      },
+      "engines": {
+        "node": ">= 18"
+      }
+    },
+    "node_modules/mkdirp": {
+      "version": "3.0.1",
+      "resolved": "https://registry.npmjs.org/mkdirp/-/mkdirp-3.0.1.tgz",
+      "integrity": "sha512-+NsyUUAZDmo6YVHzL/stxSu3t9YS1iljliy3BSDrXJ/dkn1KYdmtZODGGjLcc9XLgVVpH4KshHB8XmZgMhaBXg==",
+      "dev": true,
+      "license": "MIT",
+      "bin": {
+        "mkdirp": "dist/cjs/src/bin.js"
+      },
+      "engines": {
+        "node": ">=10"
+      },
+      "funding": {
+        "url": "https://github.com/sponsors/isaacs"
+      }
+    },
+    "node_modules/nanoid": {
+      "version": "3.3.11",
+      "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.11.tgz",
+      "integrity": "sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==",
+      "funding": [
+        {
+          "type": "github",
+          "url": "https://github.com/sponsors/ai"
+        }
+      ],
+      "license": "MIT",
+      "bin": {
+        "nanoid": "bin/nanoid.cjs"
+      },
+      "engines": {
+        "node": "^10 || ^12 || ^13.7 || ^14 || >=15.0.1"
+      }
+    },
+    "node_modules/next": {
+      "version": "14.2.31",
+      "resolved": "https://registry.npmjs.org/next/-/next-14.2.31.tgz",
+      "integrity": "sha512-Wyw1m4t8PhqG+or5a1U/Deb888YApC4rAez9bGhHkTsfwAy4SWKVro0GhEx4sox1856IbLhvhce2hAA6o8vkog==",
+      "license": "MIT",
+      "dependencies": {
+        "@next/env": "14.2.31",
+        "@swc/helpers": "0.5.5",
+        "busboy": "1.6.0",
+        "caniuse-lite": "^1.0.30001579",
+        "graceful-fs": "^4.2.11",
+        "postcss": "8.4.31",
+        "styled-jsx": "5.1.1"
+      },
+      "bin": {
+        "next": "dist/bin/next"
+      },
+      "engines": {
+        "node": ">=18.17.0"
+      },
+      "optionalDependencies": {
+        "@next/swc-darwin-arm64": "14.2.31",
+        "@next/swc-darwin-x64": "14.2.31",
+        "@next/swc-linux-arm64-gnu": "14.2.31",
+        "@next/swc-linux-arm64-musl": "14.2.31",
+        "@next/swc-linux-x64-gnu": "14.2.31",
+        "@next/swc-linux-x64-musl": "14.2.31",
+        "@next/swc-win32-arm64-msvc": "14.2.31",
+        "@next/swc-win32-ia32-msvc": "14.2.31",
+        "@next/swc-win32-x64-msvc": "14.2.31"
+      },
+      "peerDependencies": {
+        "@opentelemetry/api": "^1.1.0",
+        "@playwright/test": "^1.41.2",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "sass": "^1.3.0"
+      },
+      "peerDependenciesMeta": {
+        "@opentelemetry/api": {
+          "optional": true
+        },
+        "@playwright/test": {
+          "optional": true
+        },
+        "sass": {
+          "optional": true
+        }
+      }
+    },
+    "node_modules/next/node_modules/postcss": {
+      "version": "8.4.31",
+      "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.4.31.tgz",
+      "integrity": "sha512-PS08Iboia9mts/2ygV3eLpY5ghnUcfLV/EXTOW1E2qYxJKGGBUtNjN76FYHnMs36RmARn41bC0AZmn+rR0OVpQ==",
+      "funding": [
+        {
+          "type": "opencollective",
+          "url": "https://opencollective.com/postcss/"
+        },
+        {
+          "type": "tidelift",
+          "url": "https://tidelift.com/funding/github/npm/postcss"
+        },
+        {
+          "type": "github",
+          "url": "https://github.com/sponsors/ai"
+        }
+      ],
+      "license": "MIT",
+      "dependencies": {
+        "nanoid": "^3.3.6",
+        "picocolors": "^1.0.0",
+        "source-map-js": "^1.0.2"
+      },
+      "engines": {
+        "node": "^10 || ^12 || >=14"
+      }
+    },
+    "node_modules/node-releases": {
+      "version": "2.0.19",
+      "resolved": "https://registry.npmjs.org/node-releases/-/node-releases-2.0.19.tgz",
+      "integrity": "sha512-xxOWJsBKtzAq7DY0J+DTzuz58K8e7sJbdgwkbMWQe8UYB6ekmsQ45q0M/tJDsGaZmbC+l7n57UV8Hl5tHxO9uw==",
+      "license": "MIT"
+    },
+    "node_modules/normalize-range": {
+      "version": "0.1.2",
+      "resolved": "https://registry.npmjs.org/normalize-range/-/normalize-range-0.1.2.tgz",
+      "integrity": "sha512-bdok/XvKII3nUpklnV6P2hxtMNrCboOjAcyBuQnWEhO665FwrSNRxU+AqpsyvO6LgGYPspN+lu5CLtw4jPRKNA==",
+      "license": "MIT",
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/openai": {
+      "version": "5.12.2",
+      "resolved": "https://registry.npmjs.org/openai/-/openai-5.12.2.tgz",
+      "integrity": "sha512-xqzHHQch5Tws5PcKR2xsZGX9xtch+JQFz5zb14dGqlshmmDAFBFEWmeIpf7wVqWV+w7Emj7jRgkNJakyKE0tYQ==",
+      "license": "Apache-2.0",
+      "bin": {
+        "openai": "bin/cli"
+      },
+      "peerDependencies": {
+        "ws": "^8.18.0",
+        "zod": "^3.23.8"
+      },
+      "peerDependenciesMeta": {
+        "ws": {
+          "optional": true
+        },
+        "zod": {
+          "optional": true
+        }
+      }
+    },
+    "node_modules/picocolors": {
+      "version": "1.1.1",
+      "resolved": "https://registry.npmjs.org/picocolors/-/picocolors-1.1.1.tgz",
+      "integrity": "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==",
+      "license": "ISC"
+    },
+    "node_modules/postcss": {
+      "version": "8.5.6",
+      "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
+      "integrity": "sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==",
+      "funding": [
+        {
+          "type": "opencollective",
+          "url": "https://opencollective.com/postcss/"
+        },
+        {
+          "type": "tidelift",
+          "url": "https://tidelift.com/funding/github/npm/postcss"
+        },
+        {
+          "type": "github",
+          "url": "https://github.com/sponsors/ai"
+        }
+      ],
+      "license": "MIT",
+      "dependencies": {
+        "nanoid": "^3.3.11",
+        "picocolors": "^1.1.1",
+        "source-map-js": "^1.2.1"
+      },
+      "engines": {
+        "node": "^10 || ^12 || >=14"
+      }
+    },
+    "node_modules/postcss-value-parser": {
+      "version": "4.2.0",
+      "resolved": "https://registry.npmjs.org/postcss-value-parser/-/postcss-value-parser-4.2.0.tgz",
+      "integrity": "sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==",
+      "license": "MIT"
+    },
+    "node_modules/react": {
+      "version": "18.3.1",
+      "resolved": "https://registry.npmjs.org/react/-/react-18.3.1.tgz",
+      "integrity": "sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==",
+      "license": "MIT",
+      "dependencies": {
+        "loose-envify": "^1.1.0"
+      },
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/react-dom": {
+      "version": "18.3.1",
+      "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-18.3.1.tgz",
+      "integrity": "sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==",
+      "license": "MIT",
+      "dependencies": {
+        "loose-envify": "^1.1.0",
+        "scheduler": "^0.23.2"
+      },
+      "peerDependencies": {
+        "react": "^18.3.1"
+      }
+    },
+    "node_modules/scheduler": {
+      "version": "0.23.2",
+      "resolved": "https://registry.npmjs.org/scheduler/-/scheduler-0.23.2.tgz",
+      "integrity": "sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==",
+      "license": "MIT",
+      "dependencies": {
+        "loose-envify": "^1.1.0"
+      }
+    },
+    "node_modules/source-map-js": {
+      "version": "1.2.1",
+      "resolved": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz",
+      "integrity": "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==",
+      "license": "BSD-3-Clause",
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/streamsearch": {
+      "version": "1.1.0",
+      "resolved": "https://registry.npmjs.org/streamsearch/-/streamsearch-1.1.0.tgz",
+      "integrity": "sha512-Mcc5wHehp9aXz1ax6bZUyY5afg9u2rv5cqQI3mRrYkGC8rW2hM02jWuwjtL++LS5qinSyhj2QfLyNsuc+VsExg==",
+      "engines": {
+        "node": ">=10.0.0"
+      }
+    },
+    "node_modules/styled-jsx": {
+      "version": "5.1.1",
+      "resolved": "https://registry.npmjs.org/styled-jsx/-/styled-jsx-5.1.1.tgz",
+      "integrity": "sha512-pW7uC1l4mBZ8ugbiZrcIsiIvVx1UmTfw7UkC3Um2tmfUq9Bhk8IiyEIPl6F8agHgjzku6j0xQEZbfA5uSgSaCw==",
+      "license": "MIT",
+      "dependencies": {
+        "client-only": "0.0.1"
+      },
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "peerDependencies": {
+        "react": ">= 16.8.0 || 17.x.x || ^18.0.0-0"
+      },
+      "peerDependenciesMeta": {
+        "@babel/core": {
+          "optional": true
+        },
+        "babel-plugin-macros": {
+          "optional": true
+        }
+      }
+    },
+    "node_modules/tailwindcss": {
+      "version": "4.1.12",
+      "resolved": "https://registry.npmjs.org/tailwindcss/-/tailwindcss-4.1.12.tgz",
+      "integrity": "sha512-DzFtxOi+7NsFf7DBtI3BJsynR+0Yp6etH+nRPTbpWnS2pZBaSksv/JGctNwSWzbFjp0vxSqknaUylseZqMDGrA==",
+      "dev": true,
+      "license": "MIT"
+    },
+    "node_modules/tapable": {
+      "version": "2.2.2",
+      "resolved": "https://registry.npmjs.org/tapable/-/tapable-2.2.2.tgz",
+      "integrity": "sha512-Re10+NauLTMCudc7T5WLFLAwDhQ0JWdrMK+9B2M8zR5hRExKmsRDCBA7/aV/pNJFltmBFO5BAMlQFi/vq3nKOg==",
+      "dev": true,
+      "license": "MIT",
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/tar": {
+      "version": "7.4.3",
+      "resolved": "https://registry.npmjs.org/tar/-/tar-7.4.3.tgz",
+      "integrity": "sha512-5S7Va8hKfV7W5U6g3aYxXmlPoZVAwUMy9AOKyF2fVuZa2UD3qZjg578OrLRt8PcNN1PleVaL/5/yYATNL0ICUw==",
+      "dev": true,
+      "license": "ISC",
+      "dependencies": {
+        "@isaacs/fs-minipass": "^4.0.0",
+        "chownr": "^3.0.0",
+        "minipass": "^7.1.2",
+        "minizlib": "^3.0.1",
+        "mkdirp": "^3.0.1",
+        "yallist": "^5.0.0"
+      },
+      "engines": {
+        "node": ">=18"
+      }
+    },
+    "node_modules/tr46": {
+      "version": "0.0.3",
+      "resolved": "https://registry.npmjs.org/tr46/-/tr46-0.0.3.tgz",
+      "integrity": "sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==",
+      "license": "MIT"
+    },
+    "node_modules/tslib": {
+      "version": "2.8.1",
+      "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz",
+      "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==",
+      "license": "0BSD"
+    },
+    "node_modules/typescript": {
+      "version": "5.9.2",
+      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.2.tgz",
+      "integrity": "sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A==",
+      "dev": true,
+      "license": "Apache-2.0",
+      "bin": {
+        "tsc": "bin/tsc",
+        "tsserver": "bin/tsserver"
+      },
+      "engines": {
+        "node": ">=14.17"
+      }
+    },
+    "node_modules/undici-types": {
+      "version": "7.10.0",
+      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-7.10.0.tgz",
+      "integrity": "sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag==",
+      "license": "MIT"
+    },
+    "node_modules/update-browserslist-db": {
+      "version": "1.1.3",
+      "resolved": "https://registry.npmjs.org/update-browserslist-db/-/update-browserslist-db-1.1.3.tgz",
+      "integrity": "sha512-UxhIZQ+QInVdunkDAaiazvvT/+fXL5Osr0JZlJulepYu6Jd7qJtDZjlur0emRlT71EN3ScPoE7gvsuIKKNavKw==",
+      "funding": [
+        {
+          "type": "opencollective",
+          "url": "https://opencollective.com/browserslist"
+        },
+        {
+          "type": "tidelift",
+          "url": "https://tidelift.com/funding/github/npm/browserslist"
+        },
+        {
+          "type": "github",
+          "url": "https://github.com/sponsors/ai"
+        }
+      ],
+      "license": "MIT",
+      "dependencies": {
+        "escalade": "^3.2.0",
+        "picocolors": "^1.1.1"
+      },
+      "bin": {
+        "update-browserslist-db": "cli.js"
+      },
+      "peerDependencies": {
+        "browserslist": ">= 4.21.0"
+      }
+    },
+    "node_modules/webidl-conversions": {
+      "version": "3.0.1",
+      "resolved": "https://registry.npmjs.org/webidl-conversions/-/webidl-conversions-3.0.1.tgz",
+      "integrity": "sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==",
+      "license": "BSD-2-Clause"
+    },
+    "node_modules/whatwg-url": {
+      "version": "5.0.0",
+      "resolved": "https://registry.npmjs.org/whatwg-url/-/whatwg-url-5.0.0.tgz",
+      "integrity": "sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==",
+      "license": "MIT",
+      "dependencies": {
+        "tr46": "~0.0.3",
+        "webidl-conversions": "^3.0.0"
+      }
+    },
+    "node_modules/ws": {
+      "version": "8.18.3",
+      "resolved": "https://registry.npmjs.org/ws/-/ws-8.18.3.tgz",
+      "integrity": "sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==",
+      "license": "MIT",
+      "engines": {
+        "node": ">=10.0.0"
+      },
+      "peerDependencies": {
+        "bufferutil": "^4.0.1",
+        "utf-8-validate": ">=5.0.2"
+      },
+      "peerDependenciesMeta": {
+        "bufferutil": {
+          "optional": true
+        },
+        "utf-8-validate": {
+          "optional": true
+        }
+      }
+    },
+    "node_modules/yallist": {
+      "version": "5.0.0",
+      "resolved": "https://registry.npmjs.org/yallist/-/yallist-5.0.0.tgz",
+      "integrity": "sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw==",
+      "dev": true,
+      "license": "BlueOak-1.0.0",
+      "engines": {
+        "node": ">=18"
+      }
+    }
+  }
+}
+
+
+----- FILE: package.json -----
+{
+  "name": "knowyourself-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "clean": "powershell -Command \"if (Test-Path .next) { Remove-Item -Recurse -Force .next }\"",
+    "dev:clean": "npm run clean && npm run dev"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.55.0",
+    "autoprefixer": "^10.4.20",
+    "next": "^14.2.31",
+    "openai": "^5.12.2",
+    "postcss": "^8.4.41",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}
+
+
+----- FILE: postcss.config.js -----
+// Tailwind v4 PostCSS plugin
+module.exports = {
+  plugins: {
+    '@tailwindcss/postcss': {},
+    autoprefixer: {},
+  },
+};
+
+
+----- FILE: public/file.svg -----
+<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
+
+----- FILE: public/globe.svg -----
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+
+----- FILE: public/next.svg -----
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
+
+----- FILE: public/vercel.svg -----
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+
+----- FILE: public/window.svg -----
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+
+----- FILE: src/app/account/page.tsx -----
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabaseBrowser } from "@/lib/supabase-browser";
+
+const AVATARS = ["??","??","??","??","??","??","??","??","??","??"];
+
+type Profile = { displayName?: string; avatar?: string };
+
+export default function AccountPage() {
+  const sb = supabaseBrowser();
+  const [email, setEmail] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile>({});
+
+  useEffect(() => {
+    sb.auth.getUser().then(({data}) => setEmail(data.user?.email ?? null));
+    try {
+      const p = JSON.parse(localStorage.getItem("ky_profile") || "{}");
+      setProfile(p);
+    } catch {}
+  }, [sb]);
+
+  function save() {
+    try {
+      localStorage.setItem("ky_profile", JSON.stringify(profile));
+      alert("Saved!");
+    } catch {}
+  }
+
+  return (
+    <main className="min-h-dvh bg-gradient-to-b from-indigo-700 via-slate-900 to-rose-700 grid place-items-center">
+      <div className="rounded-2xl bg-white p-8 shadow max-w-xl w-full">
+        <h1 className="text-2xl font-bold text-gray-900">Your profile</h1>
+        {email && <p className="mt-1 text-sm text-gray-600">{email}</p>}
+
+        <label className="block mt-6 text-sm font-medium text-gray-900">
+          Display name
+        </label>
+        <input
+          value={profile.displayName ?? ""}
+          onChange={(e)=>setProfile(p=>({...p, displayName:e.target.value}))}
+          placeholder="What should we call you?"
+          className="mt-2 w-full rounded-xl border border-black/10 p-3 outline-none focus:ring-2 focus:ring-black"
+        />
+
+        <div className="mt-6">
+          <div className="text-sm font-medium text-gray-900">Pick an avatar</div>
+          <div className="mt-3 grid grid-cols-5 gap-3">
+            {AVATARS.map(a => (
+              <button
+                key={a}
+                onClick={()=>setProfile(p=>({...p, avatar:a}))}
+                className={`aspect-square rounded-2xl text-2xl grid place-items-center border transition ${
+                  profile.avatar===a ? "border-gray-900 bg-gray-50" : "border-black/10 hover:bg-gray-50"
+                }`}
+                aria-label={`Choose avatar ${a}`}
+              >
+                <span>{a}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-8 flex gap-3">
+          <button
+            onClick={save}
+            className="inline-flex items-center justify-center rounded-2xl px-6 py-3 bg-gray-900 text-white font-semibold shadow hover:shadow-md hover:scale-[1.02] active:scale-95"
+          >
+            Save
+          </button>
+          <a
+            href="/chat"
+            className="inline-flex items-center justify-center rounded-2xl px-6 py-3 bg-white text-gray-900 border border-black/10 font-semibold shadow"
+          >
+            Back to Chat
+          </a>
+        </div>
+
+        <div className="mt-8 border-t border-black/10 pt-6">
+          <div className="text-sm font-medium text-gray-900">Billing & account</div>
+          <p className="text-sm text-gray-600 mt-1">Coming soon.</p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+
+----- FILE: src/app/api/auth/route.ts -----
+export async function GET() {
+  return new Response("OK", { status: 200 });
+}
+
+
+----- FILE: src/app/api/chat/route.ts -----
+// src/app/api/chat/route.ts
+import OpenAI from "openai";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+
+export const runtime = "nodejs";
+
+export async function POST(req: Request) {
+  try {
+    const { message, system } = await req.json();
+
+    if (!process.env.OPENAI_API_KEY) {
+      return Response.json(
+        { error: "OPENAI_API_KEY is not set" },
+        { status: 500 }
+      );
+    }
+
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const messages: ChatCompletionMessageParam[] = [];
+    if (system) {
+      messages.push({ role: "system", content: String(system) });
+    }
+    messages.push({ role: "user", content: String(message || "Hello!") });
+
+    const r = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages,
+      temperature: 0.7,
+    });
+
+    const reply = r.choices?.[0]?.message?.content?.trim() || "";
+    return Response.json({ reply });
+  } catch (e: any) {
+    return Response.json(
+      { error: e?.message || "OpenAI error" },
+      { status: 500 }
+    );
+  }
+}
+
+
+----- FILE: src/app/api/envcheck/route.ts -----
+export const runtime = 'nodejs'
+
+export async function GET() {
+  const flags = {
+    NEXT_PUBLIC_SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    SUPABASE_SERVICE_ROLE: !!process.env.SUPABASE_SERVICE_ROLE,
+    OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+  }
+  return new Response(JSON.stringify(flags), {
+    headers: { 'Content-Type': 'application/json' }
+  })
+}
+
+
+----- FILE: src/app/api/generate/route.ts -----
+import OpenAI from "openai";
+
+export async function POST(req: Request) {
+  try {
+    const { prompt } = await req.json();
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const chat = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt || "hello" }],
+    });
+    return Response.json({ text: chat.choices[0].message.content });
+  } catch (err: any) {
+    return new Response(err?.message || "OpenAI error", { status: 500 });
+  }
+}
+
+
+----- FILE: src/app/api/profile/route.ts -----
+import { supabaseServer } from "@/lib/supabase/server";
+
+export async function GET() {
+  const supabase = supabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return new Response("Unauthorized", { status: 401 });
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (error) return new Response(error.message, { status: 500 });
+  return Response.json(data);
+}
+
+
+----- FILE: src/app/api/summarize/route.ts -----
+import { createClient } from '@supabase/supabase-js'
+
+export const runtime = 'nodejs'  // important: not edge
+
+export async function GET() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE
+  if (!url || !key) return new Response('ok')  // no-op if not configured
+  const supabase = createClient(url, key)
+  // TODO: your real summarize job here later
+  return new Response('ok')
+}
+
+
+----- FILE: src/app/api/trial/start/route.ts -----
+// src/app/api/trial/start/route.ts
+export const runtime = "nodejs";
+
+type MCQ = { id: string; prompt: string; options: string[] };
+type FRQ = { id: string; prompt: string };
+
+function getQuestions() {
+  // 30 practical MCQs with distinct, useful options
+  const mcq: MCQ[] = [
+    {
+      id: "q1",
+      prompt: "When do you do your best deep work?",
+      options: ["Early morning", "Late night", "Afternoon", "It varies"]
+    },
+    {
+      id: "q2",
+      prompt: "Your default work style:",
+      options: ["Plan first", "Iterate as you go", "Follow examples", "Start messy, refine later"]
+    },
+    {
+      id: "q3",
+      prompt: "How far ahead do you usually plan?",
+      options: ["Same day", "1â€“2 weeks", "1â€“3 months", "6+ months"]
+    },
+    {
+      id: "q4",
+      prompt: "Risk appetite right now:",
+      options: ["Play it safe", "Moderate risk", "Bold but calculated", "All-in if upside is big"]
+    },
+    {
+      id: "q5",
+      prompt: "How you best learn new skills:",
+      options: ["Hands-on", "Reading/watching", "Guided coaching", "Discussing with peers"]
+    },
+    {
+      id: "q6",
+      prompt: "Preferred feedback style:",
+      options: ["Blunt & direct", "Actionable & specific", "Encouraging first", "Show me examples"]
+    },
+    {
+      id: "q7",
+      prompt: "Interruptions impact you:",
+      options: ["Derail me fast", "Mildly annoying", "I recover quickly", "I donâ€™t mind them"]
+    },
+    {
+      id: "q8",
+      prompt: "Keeping focus works best when you:",
+      options: ["Time-block", "Use a timer (Pomodoro)", "Change location", "Batch similar tasks"]
+    },
+    {
+      id: "q9",
+      prompt: "What motivates your goals most?",
+      options: ["Achievement", "Mastery", "Impact", "Stability"]
+    },
+    {
+      id: "q10",
+      prompt: "Social battery at the moment:",
+      options: ["Lowâ€”prefer solo", "Balanced", "Energized by people", "Context dependent"]
+    },
+    {
+      id: "q11",
+      prompt: "Your default communication style:",
+      options: ["Brief bullets", "Detailed notes", "Story/analogy", "Visuals/diagrams"]
+    },
+    {
+      id: "q12",
+      prompt: "Decision speed preference:",
+      options: ["Fast & adjust", "Deliberate & stable", "Sleep on it", "Delegate if possible"]
+    },
+    {
+      id: "q13",
+      prompt: "Best accountability for you:",
+      options: ["Self-tracking", "Accountability partner", "Public commitment", "Coach/mentor"]
+    },
+    {
+      id: "q14",
+      prompt: "Your ideal morning kickoff:",
+      options: ["Exercise", "Deep work block", "Daily planning", "Slow start/reflection"]
+    },
+    {
+      id: "q15",
+      prompt: "Evening shutdown routine you prefer:",
+      options: ["Reflect/journal", "Plan tomorrow", "Unplug fully", "Light catch-up"]
+    },
+    {
+      id: "q16",
+      prompt: "Biggest procrastination trigger:",
+      options: ["Overwhelm", "Boredom", "Perfectionism", "Unclear next step"]
+    },
+    {
+      id: "q17",
+      prompt: "How you break down a big task:",
+      options: ["Outline first", "Timeline backwards", "Just start somewhere", "Find a good example"]
+    },
+    {
+      id: "q18",
+      prompt: "Calendar vs to-do preference:",
+      options: ["Time-block calendar", "To-do list app", "Both together", "Keep it minimal"]
+    },
+    {
+      id: "q19",
+      prompt: "Notifications strategy:",
+      options: ["All off", "Priority only", "All on", "Batch checks 2â€“3Ã—/day"]
+    },
+    {
+      id: "q20",
+      prompt: "Most leverage right now for health:",
+      options: ["Sleep", "Exercise", "Nutrition", "Stress management"]
+    },
+    {
+      id: "q21",
+      prompt: "Relationship habit to strengthen:",
+      options: ["Weekly check-ins", "Appreciation notes", "Shared activities", "Clearer boundaries"]
+    },
+    {
+      id: "q22",
+      prompt: "Money habit to emphasize:",
+      options: ["Budgeting", "Investing", "Saving buffer", "Expense tracking"]
+    },
+    {
+      id: "q23",
+      prompt: "Learning cadence that suits you:",
+      options: ["Daily micro-learning", "Weekly deep blocks", "Short sprints", "Structured courses"]
+    },
+    {
+      id: "q24",
+      prompt: "Reading preference:",
+      options: ["Audiobooks", "E-books", "Print books", "Summaries/notes"]
+    },
+    {
+      id: "q25",
+      prompt: "Note-taking style:",
+      options: ["Notion/OneNote", "Paper notebook", "Bare-bones text", "I rarely take notes"]
+    },
+    {
+      id: "q26",
+      prompt: "Declutter/review rhythm:",
+      options: ["Weekly", "Monthly", "Quarterly", "Rarely"]
+    },
+    {
+      id: "q27",
+      prompt: "Travel planning style:",
+      options: ["Light plan, flexible", "Detailed itinerary", "Spontaneous", "Guided tours"]
+    },
+    {
+      id: "q28",
+      prompt: "Best time for creative work:",
+      options: ["Morning", "Afternoon", "Evening", "Weekends"]
+    },
+    {
+      id: "q29",
+      prompt: "Breaks that recharge you:",
+      options: ["Short & frequent", "Longer but fewer", "Get outside", "Social chat"]
+    },
+    {
+      id: "q30",
+      prompt: "Quick motivation reset:",
+      options: ["Music", "Movement", "Change environment", "Knock out a quick win"]
+    }
+  ];
+
+  // 4 short-answer prompts
+  const frq: FRQ[] = [
+    { id: "t1", prompt: "In one sentence, describe your biggest current goal." },
+    { id: "t2", prompt: "What habit would you change first and why?" },
+    { id: "t3", prompt: "What does â€˜progressâ€™ look like for you in 30 days?" },
+    { id: "t4", prompt: "Anything else we should know to guide you better?" }
+  ];
+
+  return { mcq, frq };
+}
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const day = Number(url.searchParams.get("day") || "1");
+  const { mcq, frq } = getQuestions();
+
+  return Response.json({ day, mcq, frq });
+}
+
+
+----- FILE: src/app/api/trial/submit/route.ts -----
+// src/app/api/trial/submit/route.ts
+export const runtime = "nodejs";
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    // No DB here: just acknowledge. Frontend stores answers in localStorage.
+    // If you add Supabase later, insert here and return an id.
+    return Response.json({ ok: true, received: body ?? null });
+  } catch {
+    return Response.json({ ok: false }, { status: 400 });
+  }
+}
+
+
+----- FILE: src/app/api/trial/today/route.ts -----
+// src/app/api/trial/today/route.ts
+export const runtime = "nodejs";
+
+export async function GET() {
+  // We keep it simple: day 1 every time; your app can expand this logic later
+  const day = 1;
+  return Response.json({ day });
+}
+
+
+----- FILE: src/app/auth/callback/page.old.txt -----
+"use client";
+
+import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase-browser";
+
+/**
+ * Exchanges the OAuth code/hash for a Supabase session, then redirects.
+ * Supports ?next=/somewhere (defaults to /).
+ */
+export default function AuthCallback() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const next = params.get("next") || "/";
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const sb = supabaseBrowser();
+        await sb.auth.exchangeCodeForSession(window.location.href);
+        router.replace(next);
+      } catch (e) {
+        console.error("[auth/callback] exchange failed", e);
+        router.replace("/signin?error=oauth");
+      }
+    };
+    run();
+  }, [router, next]);
+
+  return (
+    <main className="mx-auto max-w-md p-6">
+      <h1 className="text-xl font-semibold">Finishing sign-in…</h1>
+      <p className="mt-2 text-sm text-gray-600">One moment…</p>
+    </main>
+  );
+}
+
+
+----- FILE: src/app/auth/callback/route.ts -----
+import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const code = url.searchParams.get("code");
+  const next = url.searchParams.get("next") || "/";
+
+  const res = NextResponse.redirect(new URL(next, req.url));
+
+  if (!code) return res;
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name, value, options) {
+          res.cookies.set({ name, value, ...options });
+        },
+        remove(name, options) {
+          res.cookies.set({ name, value: "", ...options });
+        },
+      },
+    }
+  );
+
+  // Exchange the code for a session and set cookies
+  await supabase.auth.exchangeCodeForSession(code);
+
+  return res;
+}
+
+
+----- FILE: src/app/chat/page.tsx -----
+// src/app/chat/page.tsx
+"use client";
+
+import { useState } from "react";
+
+type Msg = { role: "user" | "assistant"; content: string };
+
+export default function ChatPage() {
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || busy) return;
+
+    const next = [...messages, { role: "user", content: text } as Msg];
+    setMessages(next);
+    setInput("");
+    setBusy(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      const reply = data?.reply || data?.text || "(no reply)";
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "(error talking to AI)" },
+      ]);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl p-4 space-y-4">
+      <div className="space-y-3">
+        {messages.map((m, i) => (
+          <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
+            <div
+              className={`inline-block rounded-2xl px-3 py-2 ${
+                m.role === "user" ? "bg-white text-gray-900" : "bg-white/10 text-white"
+              }`}
+            >
+              {m.content}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={onSubmit} className="flex gap-2">
+        <input
+          className="flex-1 rounded-xl px-3 py-2 bg-white text-gray-900 placeholder-gray-500"
+          placeholder="Type a message…"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+        />
+        <button
+          disabled={busy}
+          className="rounded-xl px-4 py-2 bg-black text-white disabled:opacity-50"
+        >
+          {busy ? "…" : "Send"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+
+----- FILE: src/app/favicon.ico -----
+         (  F          (  n  00     (-  –           ¾F  (                                                           $   ]   º   º   ]   $                                           ò   ÿ   ÿ   ÿ   ÿ   ò                               8   à   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   à   8                  â   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   â              ¡   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ¡       #   ô   ÿ   ÿOOOÿ®®®ÿ«««ÿ«««ÿ«««ÿ«««ÿ­­­ÿgggÿ   ÿ   ÿ   ô   #   Y   ÿ   ÿ   ÿÿíííÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿıııÿ555ÿ   ÿ   ÿ   ÿ   Y   »   ÿ   ÿ   ÿ   ÿkkkÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ   ÿ   ÿ   ÿ   ÿ   »   »   ÿ   ÿ   ÿ   ÿ			ÿÍÍÍÿÿÿÿÿÿÿÿÿäääÿÿ   ÿ   ÿ   ÿ   ÿ   »   Y   ÿ   ÿ   ÿ   ÿ   ÿJJJÿıııÿÿÿÿÿkkkÿ   ÿ   ÿ   ÿ   ÿ   ÿ   Y   #   ô   ÿ   ÿ   ÿ   ÿÿ¶¶¶ÿÕÕÕÿ			ÿ   ÿ   ÿ   ÿ   ÿ   ô   #       ¡   ÿ   ÿ   ÿ   ÿ   ÿ111ÿDDDÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ¡              â   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   â                  8   à   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   à   8                               ò   ÿ   ÿ   ÿ   ÿ   ò                                           $   ]   º   º   ]   $                                                                                                                                                                                                                                                                                    (       @                                                                               ,   U      è   è      U   ,                                                                                      *   …   Ò   ù   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ù   Ò   …   *                                                                      –   ó   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ó   –                                                          Q   á   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   á   Q                                               r   û   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   û   r                                       r   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   r                               O   û   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   û   O                          ä   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ã                      —   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   —               (   õ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ô   '           †   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ888ÿ‹‹‹ÿˆˆˆÿˆˆˆÿˆˆˆÿˆˆˆÿˆˆˆÿˆˆˆÿˆˆˆÿˆˆˆÿˆˆˆÿˆˆˆÿˆˆˆÿˆˆˆÿ‰‰‰ÿ___ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   †          Ô   ÿ   ÿ   ÿ   ÿ   ÿ   ÿÿîîîÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿSSSÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   Ô      +   ú   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿhhhÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ®®®ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ú   +   T   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿÿËËËÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿôôôÿ,,,ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   T   ‚   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿGGGÿıııÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ      é   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ­­­ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿäääÿÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   é   é   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ+++ÿóóóÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿjjjÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   é      ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ‹‹‹ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÌÌÌÿÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ‚   T   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿÿãããÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿıııÿIIIÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   T   +   ú   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿhhhÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ¯¯¯ÿÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ú   +      Ô   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿÿËËËÿÿÿÿÿÿÿÿÿôôôÿ,,,ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   Ô          †   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿGGGÿıııÿÿÿÿÿÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   †           '   ô   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ±±±ÿìììÿÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   õ   (               —   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ333ÿ___ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   —                      ã   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ä                          O   û   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   û   O                               r   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   r                                       r   û   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   û   r                                               Q   á   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   á   Q                                                          –   ó   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ó   –                                                                      *   …   Ò   ù   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ù   Ò   …   *                                                                                      ,   U      è   è      U   ,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               (   0   `           -                                                                                             	   (   L   j   ³   ø   ÷   ³   j   K   (   	                                                                                                                                          V       Ø   ø   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ø   Ø       U                                                                                                                      %   ‹   á   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   á   ‹   &                                                                                                      ‹   ï   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ï   ‹                                                                                          Q   Ü   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   Ü   R                                                                              Š   ş   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ş   Š                                                                     ­   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ­                                                             ¸   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ¸                                                     ®   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ®                                              Š   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   Š                                       P   ı   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ı   O                                  ß   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ß                              ‹   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ‹                       #   ñ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ñ   #                   Œ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ‹                  ä   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ$$$ÿhhhÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿeeeÿPPPÿÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ä              U   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿÿëëëÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿsssÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   U           ¡   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿeeeÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÌÌÌÿÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ¡       	   Ú   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿÿÉÉÉÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿıııÿHHHÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   Ú   	   (   ù   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿEEEÿüüüÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ®®®ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ø   (   K   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿªªªÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿôôôÿ,,,ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   L   j   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ)))ÿòòòÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿŒŒŒÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   j   ´   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿˆˆˆÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿãããÿÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ³   ø   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿÿáááÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿiiiÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ø   ø   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿeeeÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿËËËÿÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ø   ³   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿÿÉÉÉÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿıııÿHHHÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ´   j   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿEEEÿüüüÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ®®®ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   j   L   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿªªªÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿôôôÿ,,,ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   K   (   ø   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ)))ÿòòòÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿŒŒŒÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ù   (   	   Ú   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿˆˆˆÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿãããÿÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   Ú   	       ¡   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿÿáááÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿiiiÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ¡           U   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿeeeÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÌÌÌÿÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   U              ä   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿÿÉÉÉÿÿÿÿÿÿÿÿÿıııÿHHHÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ä                  ‹   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿEEEÿüüüÿÿÿÿÿ®®®ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   Œ                   #   ñ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ¬¬¬ÿûûûÿ,,,ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ñ   #                       ‹   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ222ÿ}}}ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ‹                              ß   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ß                                  O   ı   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ı   P                                       Š   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   Š                                              ®   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ®                                                     ¸   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ¸                                                             ­   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ­                                                                     Š   ş   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ş   Š                                                                              R   Ü   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   Ü   Q                                                                                          ‹   ï   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ï   ‹                                                                                                      &   ‹   á   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   á   ‹   %                                                                                                                      U       Ø   ø   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ÿ   ø   Ø       V                                                                                                                                          	   (   K   j   ³   ÷   ø   ³   j   L   (   	                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ‰PNG
+
+   IHDR         \r¨f   sRGB ®Îé   8eXIfMM *    ‡i                                D"8s  IDATxí]	°Õ™n”]<QVA–èÄh$	ÊNŒ13*ˆq°ÂdªÄ©I¡ˆ˜D“L2“ª(Î(Ô˜2ÖÄ™ÑG	‹Áq_@å±ˆà†ŠxÈ›ï»Ğ¾{o÷½½ÓııUß{}»OŸå;çÿûôùÏ9İÂ‘d®(Dg Ğ8	èôN º]€î@ hx¥?v ÀNà3à=`;ğ6ğ.ğ&°àuâà  ±”6‰P©Ğ½€Á@ÿÃ RÓ PùiZqÊ^DNãà€wp¼Ø¼ĞXĞhĞ˜Hg@ÀÌ
+:Ùâ|ğ5` p"@À'¼É²™s{ëpü*ğ2ÀŞ…Ä d Ò¯Œ–È|(0ø
+0 à“>Kò
+³xX¬6 IJÈ ¤C|?$KENØ}Ï“|ŠÂòµáàöh $	2 Ù|/§Â . Nz ’#¼ÃW€eÀ
+à5€ã’ˆÜ¶ˆúà;Ày •¾ ñgàs©h^  IÄÈ DL(¢;¸8 ÒHjg€cH|x 1 ËR"Œa€ïôÓ• GÁÙ@…è9`/`%0èHÄ@jğ½~,° ÛK
+Ÿ,t).ÎèI‘ˆDèT¦Oû)~º°Vìu$b èª›ĞU%¥7“ƒ¨›ù _É$b 8Aç×À€ßøJö3` 510wQñ?¤øvrğÑá:ü2şKÄ@ ¤øv*{%#í‚AZ€å’^(õÏ=ñ³g \ãÀWƒÛ€É!:àß,`à6ıÏ643:@’c.FÙŸ¤ğùä€u?Ğ<'áİ€ƒ€”_Üvp: É8Q¾›
+IñÅ·p{3ÎóĞkHÈ¢ŒG¡¼•®cñÑ¼<62&‹
+×2uCÁÿàÚòæ•­ßâ¤Tø3Ú
+½ê€›…;î¼”ªd/~m€½.ø’XÆ@{äw.°ğ«d]G•Ú {lKÜàEbœÿı(P©RuMüTÛC›ÒÚÃÀdäï])¿Œ_Lmà=Äû=@bœÍ÷K€ÛGUkÙ^œUÓØÆØÖøš)1€È»gÕT¢ÂŠ¯°m`9Ú\Ú®³ÀQşÍ@ØÊÔıâ°–6ğ:ÚÕ^›w¬òï¸E—D¤Á ç	ü5°àºëÄFĞ,ßÜ
+ğX"Òd€mğ<€nB~òì@´¸÷µt×tx‹»ü;ÚfŞ>ñ“ªíI8µˆ»¿8Ó¸C1Ûª$B¸•§e†©İ+ş’jl«ÜEZÃÇ& ©ÊS:â:Š6°möë´ÿ\G1¥ç`¢¨Å!“nl»lÃÆŠÉ^€Q`í·@OcÙSÆÄ@e¸Í·º¹ç¤qbªp•ÿãS†Ä@upšº±FÀD@å¿Ğ“¿º†¦Ğæ2@#À¹ÆõL3 £A’”$H2Ç _h¶FH#rq(íÿOàDƒò¤¬ˆ¨àrunGOWaêbŠ &–SgDñ3ÀEDçto§*Ç¤šú¡Ä9kŠİ~)¿•¡,$Â x¿RŸ1˜vàK áÀ9€DäU(ğw®&LEÒäê©»€S)¹é3ĞY8x8 $.i€(íŒÄK¬Å€YœìğaÈ]­—´À4”ôÇ€	c‰“®Å@3¸fà€ó•4Æ Æ¢„ÿĞ/*bàüş Çş˜$!I€~‡Ø7ÉB*-1`	o Ÿ º	‘$»àÇ¡D‹¾‰”L‰ˆûàòß êJ"’äÀOQ¢Ë)•ö2@#Ğx4‰"$e ¨ø·Iö8’àOiˆ8ø"İ ¼GäŞ8[xÄt<ñ.´´7&‚m&ØR^‹³tq÷ Ø•á.¾§ÅYÅ-2È ½d§ ûã*_Üà&d|j\™W¼b ãôGùö«â*gœ¯ £‘é‡ÄF4ã"IñŠØƒ´/ b1q€NÈğãÀY€Dˆp¼ŒÛ9îãpÑ}w\¯ ó‘Ô¤£“Ó1 j`€èOûŸî­xK=€ÑHñ÷ ÷A“ˆ1Ÿ#¾
+D:U8jÀõıtù©ë$b bA||ØU¼Q¿ü26%ªÌ)1 Šè…_Àê¢³!~DÙàºæ• ¿à+b >A´Ü:]ÑE$ˆ£50òGDhRÑtèĞÁéİ»wRÉ)ğPÇ ‘èn$‘ 3ÜÖë@bS§Nu–,Yâ´jÕÊ²œç:»¡ôÜ;ÀáÀßó@£`Ç|ã–-[)“'OVıÙÕ†©sFxÚ®“âÛ¥øn}Í›7¯ üü³~ıúÆºº:»ŒÀQ—©J_¤ÎUKj8–q0xğàÆ;v4 Ì=[õhW=¾	İë	¤&·!e5Ë8hÑ¢Eãİwß]¤üüñá‡6öïß_õiW}şSZÚ?	¿/`Ÿ;vlã¾}û2 <±hÑ" »À§ĞAî¹‘¸ÜÕX,ã mÛ¶+V¬(©ü<¹wïŞÆ#F¨^íª×;“ÖşaHğc ûà”)SÊ*¿{aùòåpÊØc89(Ñ^€şö4&E¦ÛoÃ†®Wü/· uÆ=±^€ş*?{k^·_EíÇÅúúz¹íªgö† UI-‹è{WU*
+œ:pû9.tÚ·o(/İºus>ûì3ç‰'^Rg€ßäÚGâÌI_D®‘»åÜ~~½ ¹­{øúÙ?N0‘7½SêØ.Æ×¸ÿ~?}/y]nA;êØ£‹³ã2 ]ñFOB2C?·_I­÷œ”[Ğ:°:Ú=#ÀOzKé-ã ˆÛÏ£ï%å´®İ?jĞşIÀ®†PÛ¯¤æ{NÊ-hUİÿt•:™œƒ˜øõ ,â ·ŸG×KÊ-hUÛç¢cƒhP7 ÿÎ¡Â˜Á@µn?¿\Ó-¸k×.¹ıˆ2ã:õú ğ`ÙáF„Û=ı-á V·_ÉG¿ç¤Ü‚Vé İõ}¢0 WIù­ªøFºıÊ­öóèsM‡rZÕ8pJ¸QÜ*@OK8ëöó³
+rZ¥Ôİ–a, ßûwË ØSéW^y¥Ÿ‡¾.· 5íat7ÔØİ¤üÖTv#İ~7n­àA"¸üòËÕ+´£WøèpMÂÅ/ªhK8ˆÒíçgä´F/^„·«ÅŒÀM{e ì¨èR›|ú)qØë7İt“æ?8'àµ€KùíP~ºıî¹ç°ú\õırÚÑ> Ç·Uk ØeP÷ß|ë^xÇéöó³
+‹/V/Àüvòô™¯ôå„ä¢*×pâvûù ¹­Ğ¾ÊŸ]JûË}óˆk8(•ˆÎÅÇÀÄ‰Ñ£GÇ—€OÌmÚ´q,X oúğ”òe.â˜^ ¡QxĞÓßp’tûùõä4^_ƒN—{à†¾øÅyÄ2 †s¤ÛÏÏ Ğ-Ø¹sgµsÛÌĞiêv‘”Z8
+!~PJ?Œc€«ıîºë®À›|Æ] ®Ü½{·³zõê¸“Rüµ1pnãÔàzïí¥º¼tlpû9³fÍrºvíjTæ®¿şzß4*OÊLã‹~•øÑçÔ•3˜ƒ4İ~~¯r­;ÔmêxYŒ+üÀ€€¡¤íöó3 r­;Ômêx“4à÷Å:7]ÕqLš4)U·Ÿ!rú1”êuê6¿ìÕ$ÍÀ7›®èÀ8ºwïîÌ™3Ç¸|5Ï>?î\zé¥ÍOë·œëÍ†× ğø,ïE›ÅÀŒ3œš•©2¹¹å–[œººº2Wu:E¾‚´›¼^p.H1cJºtû]}õÕB˜uéÔSOu®ºŠ»ÉIc€O¥òÄ%ƒ  ÆAZ«ıüüü®kµ ‘ºD?Ç5 Ş@Q×À ÿé3Àwê+®¸"ıŒT™ÎSÀUŞ¥à13Àî?ûâ5 M'İ‹úŸ>pûşZµj•~fjÈ×ˆ×¡Ô‚n©¦±>× ğÿi5D¤[bf íÕ~a‹'·`Xc¹Ÿã -¼1ók¢›½ÿÄI«ıüŞ÷ı®kµ QºÅ¯|ókßMËé(92È@’t°ÉíçÇİ‚X-èL×“a€úN4€“qÜ'$f0@·@V„nA›Ü˜Yá½L9:â|/^sÇ ú—	¨Ó)0`êj¿°T\wİuZ-–ÄèîÂ¨\ 	@Ñ:¦±cítûùœ{È-èÇRb×û1%× ôI,Y%T‘Ûİ~‡‹rú1”ØõÂCŸ€,¼$–´*Ë€é«ıÊf<à¹0zş¥èhÕFü„û¦ ·Ÿ«ı|â€¯8Z-èCRü—¹Tg× ĞHRf€‹glYí–ª¹sçÊ-–Äp÷Ó'+Ãèî¶mµ_Ø’gÍÍ–îçC¿{ ô	òÃ’”ÈªÛÏÎ™3gÊ-èGR|×¹7`G€Şñ¥¡˜ƒ0U·Ÿ_ÙµZĞ¡Ø¯ŸD )À±ó\>¬»ıÊ—üĞ¹ıŠõz N–¤Ä@Öİ~~´Ê-èÇP¬×{rs€¿´@¬<—œ›|.]ºÔ¸|”Îm|gûõëç¬_¿Şyå•WâKD1—bàM½”¢%¡s\“·Ÿ¥rú1Ëõnì\–Æ’„"-É İ`.4æÛ~%3™àI}[0A²$µ“= -Ò>BH"G®Û^r„­<ÂEBGİi Ú%”˜’9Ì@^İ~~@«ıŠüú1Üì€†@’ tû-[¶ÌèÏ{%@CÙ$ğmAgüøñÎš5kÊ†Ñ…ÈøœŠ/åŒOÿˆlßäÓ¿„áBĞ@.X°À±uäp¥Oüî6œ—x²9MPn¿`ß·o_§¾¾^nÁ`t…
+¥§(úª»™ƒ\rûùsÆAÒyóæéÛ‚şT…¡@h
+ƒE0lØ0çÎ;ïtÚµÓ˜kÆ¸N ¡¡ÁYµjUà
+S#ì|^ã½º- |¢İpÃN—.…­ØŞ¥`×^{­zLñ6ƒƒ4 ŸÄ›†bç¨öe—]&"ªd€sÎœ9UŞ¥àU0ğ!ÀÁ*nPĞ*`—ÿæ›oÖ¨v•¼¹Ái8GåşÔÿhh ØmœŠÍËÀäÉ“sÏ=×{JÇU0ÀÕ‚óçÏwZ·æş’ˆø”ƒ€ì›ö8bEzôèá,Y²Dïş![CŸ>}œ7:k×®“noÆÀfö >jvR?#b€ƒXˆ(¶üFÃAT¾FÕÕióêˆ[Á{ì°zvÄç>º¡C‡Êía+[0B2Dµœ=€íG~ë(
+øÄºñÆÕõ‚LO×\sÜ‚>"8|‹`[)
+&Lp8ø'‰–öäŒ”Óí4 oGeÎ#£ÛÀlÙ’_\“DÍ€Ü‚‘2ZØl¢Üi´9ŒtäÈ‘9f Ş¢Ë-¿œ¼‹=€‡YÌyˆn?uQã¯}XÍ¬ÍsAïi >=ŒĞ1æ=RÉí+à +­Ü‚¡¸.2 šŠKì«·ßôéÓCÆ¢Ûƒ20hĞ ‡Ë«%53À5@…MA¹%˜¦×Ì£ãÈí‚¼·j[õä9Î;¸û _(¯ú§¿µ0ÀÕ~rûÕÂ\¸{ômÁPüÜÿ®x#TT9¾™n?¾Êí—N# á•×¥&î}× ¬¯)
+İTVL¯!¸ßÔjÁªë`ïp ß8@RrûUAVŒAå¬šÜ=¸ã-Şå€÷pLHª`@n¿*ÈŠ1¨Ü‚U“Ëõ?}w ]ìH2@·ß´iÓ†V°¸ [Ë¯%àôÿ‚ëß5 8±)Ğ­
+T`€›|rZbZ-¸.Ö!da+@× ğÎçßó€Zígf[0p½¼æ†ô ä¤ I´Égr¸$· o%PÇ_rCyÀVœ|ß½ ÿ¥à"mòYšÎÊ-è[ lÚÄk xAã ø“Û¯9]¢[pÒ¤IåÈ¨¬pP“ÇÏk ŠºFeÙÌÈígHEødƒnAm"Z–$õ5}„›‚zå8üéô2røX›|– ÅàSÜ»w¯³råJƒs™JÖ~T›fşz{ ÌÍ« ÷xĞj?jµàQ•Eİnò ğjsÀùÁ|GxĞ·ı<dXt(·àQ•Eİ.¬p¯47 Üğ)÷¢ş;…Ïysµ_«V­D‡…È-XTiÔí¢ı?› †~¼è–œÿÛÏî ·`Qı=Vô?šòú^à
+€‚¹ºı–.]ª|XŞ
+ômÁB~€¿?ŠÆøJõ ŞD —·äüÜ~Ùh rê‘óÿ©ÛERªÀ…Aİ€óŠBæìİ~wÜq‡Ó¾}ûœ•<›Å•[Ğ¹5ûdóÚ-Õ`˜5 ?Kqİ~l4’ì0@·à)§œ’/I‚®(¼œà‡Ø‹ü…¥nÎê9¹ı²Y³4èœ!˜CÙˆ2×—*w9ÀÀGKİõsî&Ÿrûe³¦súé¶? 6Ù8JÊ |(òuwOä´d°&K)‡nA¾Ê?RšÒn@7,·º8Á=‘õÿrûe½†•nÁM›69k×òM7óÂéı·J•´R€]†e¥nÊê9¹ı²Z³Ååâ /?á“o>ŒÒó•¾¤”rzrÒÀ óó`åöóV{ö»uëæ4448«V­Êra÷ p³ îõQRZ”<{ädK.F9•½#~Tâ¾ûîs.¾øâìN%*Ë ÀğáÃuë8G&“²¥ì/W:*x%á{Ã}@¦ »‚lõõõNc#çAIòÀÀ±Ç›õiŞ÷£Ë*?ëØ¯À0}€g€ãùC"Ä€pÛ¯³€Šßû¨4è–’Ò(bÀ8€_QùY” €áîr7'€—ˆ`·ÿî ùj ¸6à… *Œ©3ÀWögƒä"¨àl¢¡Âˆ1:ì±Sg}%È  	¹¥P?÷„ş‹1`›£¯ÉYĞ ãâ"‹‚Dª0b@¤Æ İö”Ÿ9¬¦Àğı¾[tá‰F1À‡ôp`kĞ\UÓ`œÜRø·A#W81 e`)RÛZMŠÕö ÷€[uæ‰F0ğ	rq.ÀÕ¥Ú #^ğ=C"Ä€9P'«R~f½– ï
+pn€zdC"Òe ¦§?³\K€÷½¨@&$b }jzú3Ûµö x/{èÄ1 Ra€#ÿ|÷çÆŸUK­= &Ä^€æTM¹n‘2À9ÿ5)?s¦Àû{O'ó‡DˆDà’ßo [kMÕoK0¿xÿŒ ÜTd‚_@]b ræ ÆGÃÄ¶À´; «€¯ò‡DˆDàêÜ1ÀgaRÛ`ÚÜ'`0ˆÂ  ‰>\ë/ù„ñ½fĞùƒøñ÷„Å€ˆß!fn÷Z¢|bŸ†ÜğU .t®åà¤ŸÑÀÚrª9Å+€›ı‘­€±î	ıb rnEŒDk”= æé8àÀÙü!b RClã€PŞEÙ`¼ÜŒK†'~ß@‰ Ë}*°!`ø@Á¢6 Lô ;À	$b@DÃÀ?#šÈgŞFı
+àµV”ˆ1vıÇ;ÃEsôİQ¹›ÇÌ=É®ö4¿ ßb@TÅÀn„ş!¹ò3q¼0^ÊV€ã c ‰µ1ğÜ¶´¶[ıïŠëÀM¹=8Iˆİ‰Õ1@Ú…@Cu··`N¸oÀã WJÄ€Æ WúÑåÇe÷±Iœ¯ n¦¹Nàmà¯€¸ÆÜ´ô_d(Ä4`EÜ…IÂ °¯œ"ÌµË1 *3ğ+\şEå Ñ\MâÀÍ)g	rÁ¦
+»Œè¿8š>õ¿pô?vIÒ °0€Ç€~ü!b ˆ­øÅ$'Ó%"I¿“¿RıÀi1 0°‡? S~&Ô Ór…ä’Æ€¤{ nô_˜ÄÀÈÌLà?’ÎT€eäÔÆÀ7ùC"rÎÀOQ~"qIË ° O 8?$b §Ü‹rÿ#@×_â’v¼JÌ™‚£/¹é3ğ'dá/ÈÖ÷W[¤¤›ço'Nüğlóú-2Î Ûüå@jÊO~Óî0”À2` HÄ@ÆØ„òĞ+–ª¤İpOB® ŞuOè¿È(lãS€Ô•Ÿü¦9Èô½ò~ğcß:x/èXd„.ğù°Æ”ò˜d ÈÉVày@F $H2Å •Ÿïü+M*•i€Ül8O@F $H2Á •Ÿå®2­4& r´POÀ´Ö¢üÔÂ€ûä7NùYS ó¶ øÀYƒ1`ğã;ÿJS3n² g['‘@W@"la`32Ên?'ûHB2p
+îhÄm€mu ‰“×j@F@˜ÜV ²­Z!¦¿xIä”ÉÿH®y™Ñ±)üù>ÀåZ!6 ºà”aÎ`äş‚¦ÌdDV$9f€ëù	pM¿6»I¨!LG:\LdrwPyË~ıPá§%Ôæ•L3Æá7çTKÑÄAm€mo|³6©Ÿ	3Ğé-Òh J3¿¼?67 á¶yr¶”"€ûşàgÈÎ4. $±1À÷ı_¼[*Š¸&¸¤˜S/õdq´Îìãä‰ÁCŞâh Š3¿¼>Š6Å¶%±€¶Èã\€#´RZq¦ğ=lK|Å”XÆÀXäWSˆe j5 /¡ıĞÓ$±˜:äıv@½‚ †€Î8Ğ×d„1(‡z2~Fà)´ùö3¢ôÍ‹ÁŞÀl€®C¿† ëùâè#´‰›í=².\Lt? %Ñ N$9b %Ê:àşƒ2ùä€u	 É1|-˜	ldòÁ÷œœt $b À@?ü¥·@† »FàcÔïÏ^€D”d€[9ıà zÙà€ŠÏ:
+HÄ@ ¾ŒP2v )~ ¦®@•àüïŸz5°Ç|€úÒ¿R«ÖµªàÁ|`# W39Ø‚ºá<î"-±0Àï\<ìdÒå€uÀoGLz 1œGp°à—e’å€¯d‹ .øjHÄ@jôFÊ3€•@ c{s<ÿùJ&	É@‹÷ëöb¸ÙÀw‹  ²§ ©nÁµàvğœ²û< ‰ˆ€ˆˆ,M;œû*p>p!0hHüà{=•»ğüxà]IÄÈ DLh™èÚâ<'¡Œh8Ç@V Á#ïã˜Jÿ°àfû IŒÈ ÄHn…¨ûãWŸ}àNÆt[uò$Ÿ¢°›§å ş@’ 2 	’]&)† #€3ˆ“,	=%¯TôÕÀkÀ&à  I‰€”ˆ÷I¶®Ó³ğ Ù[8	è	´L–]È]tïTğgõÀ6à-@b2 U†OVºã: A?€¯} .iî|	àxCœÂ÷rvßw; ÎÀ#ê>éi 8_b82 †WP€ìÑõè  {'n¯áÓ8ğz;€Æ¤yİsŸ œÃ@¥¦¼P¡·o|ÂSùih $3ğÿ@ß¹jìŠá    IEND®B`‚
+
+----- FILE: src/app/globals.css -----
+/* Tailwind v4 */
+@import "tailwindcss";
+
+/* optional: keep anything else you want below */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+/* === Dark theme form fixes === */
+input, textarea, select {
+  background-color: #ffffff;           /* white field */
+  color: #111827;                      /* gray-900 text */
+  border-radius: 0.75rem;              /* rounded-xl */
+  padding: 0.5rem 0.75rem;             /* px-3 py-2 */
+}
+input::placeholder, textarea::placeholder {
+  color: #6b7280;                      /* gray-500 */
+}
+button:focus, input:focus, textarea:focus, select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.4);
+}
+label { color: #ffffff; }
+/* Dark theme input visibility */
+input, textarea, select {
+  background-color: #ffffff;
+  color: #111827;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+}
+input::placeholder, textarea::placeholder {
+  color: #6b7280;
+}
+button:focus, input:focus, textarea:focus, select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.4);
+}
+label { color: #ffffff; }
+
+
+----- FILE: src/app/layout.tsx -----
+// src/app/layout.tsx
+import "./globals.css";
+import type { Metadata } from "next";
+import SiteHeader from "../components/SiteHeader";
+
+export const metadata: Metadata = {
+  title: "KnowYourself.ai",
+  description: "Smartness Score and more",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+  <body className="min-h-screen text-white bg-gradient-to-b from-indigo-900 via-slate-950 to-rose-900">
+  <SiteHeader />
+  <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+</body>
+    </html>
+  );
+}
+
+
+----- FILE: src/app/onboarding/page.original.txt -----
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+const MCQS = [
+  { id: "q1",  prompt: "How do you usually start your day?", options: [
+    {id:"a",label:"Jump right in"},{id:"b",label:"Plan first"},
+    {id:"c",label:"Scroll news/social"},{id:"d",label:"Slow & quiet start"}
+  ]},
+  { id: "q2",  prompt: "When stuck, you tend to…", options: [
+    {id:"a",label:"Ask someone"},{id:"b",label:"Research"},
+    {id:"c",label:"Experiment"},{id:"d",label:"Wait it out"}
+  ]},
+  { id: "q3",  prompt: "Your focus is best…", options: [
+    {id:"a",label:"Early morning"},{id:"b",label:"Midday"},
+    {id:"c",label:"Evening"},{id:"d",label:"It varies"}
+  ]},
+  { id: "q4",  prompt: "Biggest drag on energy lately?", options: [
+    {id:"a",label:"Sleep"},{id:"b",label:"Stress/Anxiety"},
+    {id:"c",label:"Too many tasks"},{id:"d",label:"People/conflict"}
+  ]},
+  { id: "q5",  prompt: "Which describes your planning?", options: [
+    {id:"a",label:"Detailed"},{id:"b",label:"Rough outline"},
+    {id:"c",label:"Mostly reactive"},{id:"d",label:"Avoid planning"}
+  ]},
+  { id: "q6",  prompt: "Money behavior right now is…", options: [
+    {id:"a",label:"On top of it"},{id:"b",label:"Okay-ish"},
+    {id:"c",label:"Behind"},{id:"d",label:"Avoiding it"}
+  ]},
+  { id: "q7",  prompt: "Feedback lands best when…", options: [
+    {id:"a",label:"Direct & blunt"},{id:"b",label:"Supportive"},
+    {id:"c",label:"Written"},{id:"d",label:"Live chat"}
+  ]},
+  { id: "q8",  prompt: "You’re motivated most by…", options: [
+    {id:"a",label:"Clear goals"},{id:"b",label:"Deadlines"},
+    {id:"c",label:"Accountability"},{id:"d",label:"Curiosity"}
+  ]},
+  { id: "q9",  prompt: "Decision style:", options: [
+    {id:"a",label:"Fast gut"},{id:"b",label:"Research heavy"},
+    {id:"c",label:"Ask trusted person"},{id:"d",label:"Delay/avoid"}
+  ]},
+  { id: "q10", prompt: "What breaks your flow?", options: [
+    {id:"a",label:"Notifications"},{id:"b",label:"People"},
+    {id:"c",label:"Multi-tasking"},{id:"d",label:"Unclear task"}
+  ]},
+  { id: "q11", prompt: "You recharge by…", options: [
+    {id:"a",label:"Solo time"},{id:"b",label:"Friends"},
+    {id:"c",label:"Movement"},{id:"d",label:"Creative play"}
+  ]},
+  { id: "q12", prompt: "Conflict stance:", options: [
+    {id:"a",label:"Head-on"},{id:"b",label:"Diplomatic"},
+    {id:"c",label:"Avoid"},{id:"d",label:"Delay then handle"}
+  ]},
+  { id: "q13", prompt: "Your workspace is…", options: [
+    {id:"a",label:"Minimalist"},{id:"b",label:"Organized chaos"},
+    {id:"c",label:"Varies"},{id:"d",label:"Wherever I am"}
+  ]},
+  { id: "q14", prompt: "Procrastination trigger:", options: [
+    {id:"a",label:"Boredom"},{id:"b",label:"Ambiguity"},
+    {id:"c",label:"Perfectionism"},{id:"d",label:"Fear of outcome"}
+  ]},
+  { id: "q15", prompt: "Most helpful nudge:", options: [
+    {id:"a",label:"Time block"},{id:"b",label:"External deadline"},
+    {id:"c",label:"Public commitment"},{id:"d",label:"Tiny first step"}
+  ]},
+  { id: "q16", prompt: "Biggest strength at work:", options: [
+    {id:"a",label:"Persistence"},{id:"b",label:"Strategy"},
+    {id:"c",label:"People"},{id:"d",label:"Speed"}
+  ]},
+  { id: "q17", prompt: "Biggest growth area:", options: [
+    {id:"a",label:"Focus"},{id:"b",label:"Confidence"},
+    {id:"c",label:"Systems"},{id:"d",label:"Communication"}
+  ]},
+  { id: "q18", prompt: "You learn best by…", options: [
+    {id:"a",label:"Doing"},{id:"b",label:"Reading/Research"},
+    {id:"c",label:"Watching"},{id:"d",label:"Teaching others"}
+  ]},
+  { id: "q19", prompt: "Risk tolerance:", options: [
+    {id:"a",label:"High"},{id:"b",label:"Medium"},
+    {id:"c",label:"Low"},{id:"d",label:"Varies"}
+  ]},
+  { id: "q20", prompt: "Social energy:", options: [
+    {id:"a",label:"Energized"},{id:"b",label:"Neutral"},
+    {id:"c",label:"Drained"},{id:"d",label:"Depends who"}
+  ]},
+  { id: "q21", prompt: "Sleep quality lately:", options: [
+    {id:"a",label:"Great"},{id:"b",label:"Okay"},
+    {id:"c",label:"Poor"},{id:"d",label:"All over the place"}
+  ]},
+  { id: "q22", prompt: "Fitness/movement:", options: [
+    {id:"a",label:"Consistent"},{id:"b",label:"Some weeks"},
+    {id:"c",label:"Rare"},{id:"d",label:"Restarting"}
+  ]},
+  { id: "q23", prompt: "Caffeine habit:", options: [
+    {id:"a",label:"Daily"},{id:"b",label:"Sometimes"},
+    {id:"c",label:"None"},{id:"d",label:"Trying to cut"}
+  ]},
+  { id: "q24", prompt: "Digital clutter:", options: [
+    {id:"a",label:"Clean"},{id:"b",label:"Manageable"},
+    {id:"c",label:"Messy"},{id:"d",label:"Overwhelmed"}
+  ]},
+  { id: "q25", prompt: "Money mindset today:", options: [
+    {id:"a",label:"Confident"},{id:"b",label:"Cautious"},
+    {id:"c",label:"Anxious"},{id:"d",label:"Avoidant"}
+  ]},
+  { id: "q26", prompt: "Attention leaks most via…", options: [
+    {id:"a",label:"Phone"},{id:"b",label:"Browser tabs"},
+    {id:"c",label:"Chat apps"},{id:"d",label:"Meetings"}
+  ]},
+  { id: "q27", prompt: "Ship style:", options: [
+    {id:"a",label:"Iterate fast"},{id:"b",label:"Perfect then ship"},
+    {id:"c",label:"Collaborative"},{id:"d",label:"Private until ready"}
+  ]},
+  { id: "q28", prompt: "What you track:", options: [
+    {id:"a",label:"Habits"},{id:"b",label:"Time"},
+    {id:"c",label:"Money"},{id:"d",label:"Nothing"}
+  ]},
+  { id: "q29", prompt: "Personal growth lately:", options: [
+    {id:"a",label:"Up"},{id:"b",label:"Flat"},
+    {id:"c",label:"Down"},{id:"d",label:"Unsure"}
+  ]},
+  { id: "q30", prompt: "Preferred reflection cadence:", options: [
+    {id:"a",label:"Daily"},{id:"b",label:"Weekly"},
+    {id:"c",label:"Ad-hoc"},{id:"d",label:"Rarely"}
+  ]},
+];
+
+export default function OnboardingPage() {
+  const router = useRouter();
+
+  // longform (1 required + 3 optional)
+  const [about, setAbout] = useState("");
+  const [challenge, setChallenge] = useState("");
+  const [strength, setStrength] = useState("");
+  const [support, setSupport] = useState("");
+
+  // baseline sliders
+  const [energy, setEnergy] = useState(50);
+  const [stability, setStability] = useState(50);
+  const [finances, setFinances] = useState(50);
+  const [confidence, setConfidence] = useState(50);
+
+  // MCQ answers map
+  const [answers, setAnswers] = useState({});
+
+  // Prefill to avoid disabled button loop
+  useEffect(() => {
+    try {
+      const intake = JSON.parse(localStorage.getItem("ky_intake") || "{}");
+      if (typeof intake.about === "string") setAbout(intake.about);
+      if (typeof intake.challenge === "string") setChallenge(intake.challenge);
+      if (typeof intake.strength === "string") setStrength(intake.strength);
+      if (typeof intake.support === "string") setSupport(intake.support);
+    } catch {}
+    try {
+      const base = JSON.parse(localStorage.getItem("ky_baseline") || "{}");
+      if (typeof base.energy === "number") setEnergy(base.energy);
+      if (typeof base.stability === "number") setStability(base.stability);
+      if (typeof base.finances === "number") setFinances(base.finances);
+      if (typeof base.confidence === "number") setConfidence(base.confidence);
+    } catch {}
+    try {
+      const mcq = JSON.parse(localStorage.getItem("ky_mcq") || "[]");
+      const map = {};
+      if (Array.isArray(mcq)) {
+        mcq.forEach((a) => { if (a && a.id && a.value) map[a.id] = a.value; });
+      }
+      setAnswers(map);
+    } catch {}
+  }, []);
+
+  const canStart = about.trim().length >= 10;
+
+  function saveAndGo() {
+    try {
+      const intake = {
+        about: about.trim(),
+        challenge: challenge.trim() || undefined,
+        strength: strength.trim() || undefined,
+        support: support.trim() || undefined,
+        goal: about.trim(), // legacy compatibility
+      };
+      localStorage.setItem("ky_intake", JSON.stringify(intake));
+      localStorage.setItem("ky_baseline", JSON.stringify({ energy, stability, finances, confidence }));
+      const mcqArr = Object.keys(answers).map((id) => ({ id, value: answers[id] }));
+      localStorage.setItem("ky_mcq", JSON.stringify(mcqArr));
+      if (!localStorage.getItem("ky_trial_start")) {
+        localStorage.setItem("ky_trial_start", new Date().toISOString());
+      }
+    } catch {}
+    router.push("/trial/1");
+  }
+
+  return (
+    <main className="min-h-dvh bg-gradient-to-b from-indigo-700 via-slate-900 to-rose-700 grid place-items-center">
+      <div className="rounded-2xl bg-white p-8 shadow max-w-5xl w-full">
+        <h1 className="text-3xl font-bold text-gray-900">Onboarding</h1>
+        <p className="mt-2 text-gray-700">
+          Give me enough signal to tailor your 30 days. First question is required; the rest are optional but helpful.
+        </p>
+
+        {/* Required longform */}
+        <label className="block mt-6 text-sm font-medium text-gray-900">
+          Tell me about yourself (struggles, wins, what matters most) <span className="text-rose-600">*</span>
+        </label>
+        <textarea
+          value={about}
+          onChange={(e) => setAbout(e.target.value)}
+          placeholder="Write as much as you like."
+          className="mt-2 w-full rounded-xl border border-black/10 p-4 outline-none focus:ring-2 focus:ring-black"
+          rows={5}
+        />
+
+        {/* Optional longform */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-900">What feels stuck right now? (optional)</label>
+            <textarea
+              value={challenge}
+              onChange={(e) => setChallenge(e.target.value)}
+              className="mt-2 w-full rounded-xl border border-black/10 p-3 outline-none focus:ring-2 focus:ring-black"
+              rows={3}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-900">What strength will you lean on? (optional)</label>
+            <textarea
+              value={strength}
+              onChange={(e) => setStrength(e.target.value)}
+              className="mt-2 w-full rounded-xl border border-black/10 p-3 outline-none focus:ring-2 focus:ring-black"
+              rows={3}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-900">Where could you use support? (optional)</label>
+            <textarea
+              value={support}
+              onChange={(e) => setSupport(e.target.value)}
+              className="mt-2 w-full rounded-xl border border-black/10 p-3 outline-none focus:ring-2 focus:ring-black"
+              rows={3}
+            />
+          </div>
+        </div>
+
+        {/* Baseline sliders */}
+        <p className="mt-6 text-sm text-gray-700">
+          Adjust the categories below to match where you're at <strong>today</strong>.
+        </p>
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <div className="flex items-center justify-between text-sm text-gray-700">
+              <span>Energy</span><span className="font-mono">{energy}</span>
+            </div>
+            <input type="range" min={0} max={100} value={energy} onChange={(e)=>setEnergy(Number(e.target.value))} className="w-full" />
+          </div>
+          <div>
+            <div className="flex items-center justify-between text-sm text-gray-700">
+              <span>Stability</span><span className="font-mono">{stability}</span>
+            </div>
+            <input type="range" min={0} max={100} value={stability} onChange={(e)=>setStability(Number(e.target.value))} className="w-full" />
+          </div>
+          <div>
+            <div className="flex items-center justify-between text-sm text-gray-700">
+              <span>Finances</span><span className="font-mono">{finances}</span>
+            </div>
+            <input type="range" min={0} max={100} value={finances} onChange={(e)=>setFinances(Number(e.target.value))} className="w-full" />
+          </div>
+          <div>
+            <div className="flex items-center justify-between text-sm text-gray-700">
+              <span>Self-confidence</span><span className="font-mono">{confidence}</span>
+            </div>
+            <input type="range" min={0} max={100} value={confidence} onChange={(e)=>setConfidence(Number(e.target.value))} className="w-full" />
+          </div>
+        </div>
+
+        {/* 30 MCQs */}
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold text-gray-900">Quick discovery (30 multiple-choice)</h2>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+            {MCQS.map((q) => (
+              <fieldset key={q.id} className="rounded-xl border border-black/10 p-3">
+                <legend className="text-sm font-medium text-gray-900">{q.prompt}</legend>
+                <div className="mt-2 grid gap-2">
+                  {q.options.map((opt) => {
+                    const checked = (answers[q.id] === opt.id);
+                    return (
+                      <label
+                        key={opt.id}
+                        className={`flex items-center gap-3 rounded-lg border p-2 cursor-pointer transition ${checked ? "border-gray-900 bg-gray-50" : "border-black/10 hover:bg-gray-50"}`}
+                      >
+                        <input
+                          type="radio"
+                          name={q.id}
+                          value={opt.id}
+                          checked={checked}
+                          onChange={() => setAnswers({ ...answers, [q.id]: opt.id })}
+                          className="accent-black"
+                        />
+                        <span className="text-sm text-gray-900">{opt.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={saveAndGo}
+          disabled={!canStart}
+          className="mt-8 w-full inline-flex items-center justify-center rounded-2xl px-6 py-3 bg-gray-900 text-white font-semibold shadow transition hover:shadow-md hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+        >
+          Begin your 30-day trial
+        </button>
+      </div>
+    </main>
+  );
+}
+
+
+----- FILE: src/app/onboarding/page.tsx -----
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+type AnswerMap = Record<string, string>;
+type Question = {
+  id: string;
+  label: string;
+  options: { value: string; label: string }[];
+};
+
+const questions: Question[] = [
+  {
+    id: "goal",
+    label: "What is your main goal right now",
+    options: [
+      { value: "find_clarity", label: "Find clarity" },
+      { value: "career_growth", label: "Career growth" },
+      { value: "relationships", label: "Improve relationships" },
+      { value: "health", label: "Health and fitness" }
+    ]
+  },
+  {
+    id: "style",
+    label: "How do you prefer to learn",
+    options: [
+      { value: "visual", label: "Visual explanations" },
+      { value: "hands_on", label: "Hands on practice" },
+      { value: "reading", label: "Reading and notes" },
+      { value: "discussion", label: "Discussion and feedback" }
+    ]
+  },
+  {
+    id: "pace",
+    label: "How fast do you want to move",
+    options: [
+      { value: "slow", label: "Slow and steady" },
+      { value: "balanced", label: "Balanced pace" },
+      { value: "fast", label: "As fast as possible" }
+    ]
+  }
+];
+
+export default function OnboardingPage() {
+  const router = useRouter();
+  const [answers, setAnswers] = useState<AnswerMap>({});
+  const [submitting, setSubmitting] = useState(false);
+
+  // load from localStorage (so mobile refresh does not wipe progress)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("onboarding_answers");
+      if (raw) setAnswers(JSON.parse(raw) as AnswerMap);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("onboarding_answers", JSON.stringify(answers));
+    } catch {}
+  }, [answers]);
+
+  const onChange = (qid: string, value: string) => {
+    setAnswers((prev) => ({ ...prev, [qid]: value }));
+  };
+
+  const canSubmit = questions.every((q) => Boolean(answers[q.id]));
+
+  const onSubmit = async () => {
+  if (!canSubmit || submitting) return;
+  setSubmitting(true);
+  try {
+    await fetch("/api/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers })
+    }).catch(() => {});
+    // go to your real flow – this is where the 30 MCQs live in your app
+    router.push("/trial/1");
+  } finally {
+    setSubmitting(false);
+  }
+};
+
+  return (
+    <div className="mx-auto max-w-2xl p-6 space-y-8">
+      <header className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">Onboarding</h1>
+        <p className="text-base opacity-80">
+          Quick setup so your results feel tailored.
+        </p>
+      </header>
+
+      <section className="space-y-8">
+        {questions.map((q) => (
+          <div key={q.id} className="rounded-2xl border border-white/15 bg-white/5 p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">{q.label}</h2>
+            <div className="mt-4 grid gap-3">
+              {q.options.map((opt) => {
+                const id = `${q.id}_${opt.value}`;
+                const checked = answers[q.id] === opt.value;
+                return (
+                  <label
+                    key={id}
+                    htmlFor={id}
+                    className={`flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer ${
+                      checked ? "ring-2 ring-white/60 bg-white/10" : "border-white/15 hover:bg-white/5"
+                    }`}
+                  >
+                    <input
+                      id={id}
+                      type="radio"
+                      name={q.id}
+                      value={opt.value}
+                      checked={checked}
+                      onChange={(e) => onChange(q.id, e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <span className="text-base">{opt.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <footer className="pt-2">
+        <button
+          onClick={onSubmit}
+          disabled={!canSubmit || submitting}
+          className={`w-full rounded-2xl px-4 py-3 text-white text-lg font-semibold ${
+            !canSubmit || submitting
+              ? "bg-white/20 cursor-not-allowed"
+              : "bg-black hover:opacity-90"
+          }`}
+        >
+          {submitting ? "Saving..." : "Start"}
+        </button>
+
+        {!canSubmit && (
+          <p className="mt-2 text-center text-sm opacity-70">
+            Pick an option for each question to continue
+          </p>
+        )}
+      </footer>
+    </div>
+  );
+}
+
+
+----- FILE: src/app/page.tsx -----
+import Link from "next/link";
+
+export default function HomePage() {
+  return (
+    <div className="mx-auto max-w-3xl px-4 pt-10 pb-16">
+      <h1 className="text-5xl font-extrabold tracking-tight">
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-rose-300 via-amber-200 to-emerald-200">
+          knowyourself.ai
+        </span>
+      </h1>
+
+      <p className="mt-4 text-lg/7 text-white/90">
+        Answer a few questions to get instant insight about who you are. Then chat to deepen it over time.
+      </p>
+
+      <div className="mt-8">
+        <Link
+          href="/onboarding"
+          className="inline-flex items-center justify-center rounded-2xl px-6 py-3 bg-white text-gray-900 font-semibold shadow transition-all duration-150 hover:shadow-md hover:scale-[1.02] active:scale-95"
+        >
+          Start
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+
+----- FILE: src/app/profile/page.tsx -----
+"use client";
+import { useEffect, useState } from "react";
+import { loadProfile, saveProfile } from "@/lib/profile";
+import Link from "next/link";
+
+const AVATARS = ["??","??","??","??","??","??","??","??","??","??"];
+
+export default function ProfilePage() {
+  const [name, setName] = useState("");
+  const [avatar, setAvatar] = useState(AVATARS[0]);
+
+  useEffect(() => {
+    const p = loadProfile();
+    if (p) {
+      setName((p as any).displayName || "");
+      setAvatar((p as any).avatar || AVATARS[0]);
+    }
+  }, []);
+
+  function save() {
+    saveProfile({ displayName: name.trim() || undefined, avatar });
+    alert("Saved!");
+  }
+
+  return (
+    <main className="min-h-dvh grid place-items-center">
+      <div className="rounded-2xl bg-white p-8 shadow max-w-xl w-full">
+        <h1 className="text-2xl font-bold text-gray-900">Your profile</h1>
+        <p className="mt-2 text-gray-700">
+          Pick a display name and an avatar. Billing & account settings will live here later.
+        </p>
+
+        <label className="block mt-6 text-sm font-medium text-gray-900">Display name</label>
+        <input
+          value={name}
+          onChange={(e)=>setName(e.target.value)}
+          placeholder="e.g., Jordan"
+          className="mt-2 w-full rounded-xl border border-black/10 p-3 outline-none focus:ring-2 focus:ring-black"
+        />
+
+        <div className="mt-6">
+          <div className="text-sm font-medium text-gray-900">Avatar</div>
+          <div className="mt-3 grid grid-cols-5 gap-3">
+            {AVATARS.map(a => (
+              <button
+                key={a}
+                onClick={()=>setAvatar(a)}
+                className={`text-2xl aspect-square rounded-xl border p-3 transition ${
+                  avatar === a ? "border-gray-900 bg-gray-50" : "border-black/10 hover:bg-gray-50"
+                }`}
+                aria-label={`Choose avatar ${a}`}
+              >
+                <span>{a}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-8 flex gap-3">
+          <button onClick={save} className="inline-flex items-center justify-center rounded-2xl px-6 py-3 bg-gray-900 text-white font-semibold">Save</button>
+          <Link href="/chat" className="inline-flex items-center justify-center rounded-2xl px-6 py-3 bg-white text-gray-900 border border-black/10 font-semibold">Back to chat</Link>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+
+----- FILE: src/app/quiz/page.tsx -----
+// src/app/quiz/page.tsx
+import { redirect } from "next/navigation";
+import { supabaseServer } from "@/lib/supabase/server";
+
+export default async function Page() {
+  const supabase = supabaseServer();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    redirect("/signin?next=/quiz");
+  }
+
+  return (
+    <main className="mx-auto max-w-xl p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Smartness Score</h1>
+      <p className="text-base">
+        Quiz content goes here. Wire up your questions and state.
+      </p>
+    </main>
+  );
+}
+
+
+----- FILE: src/app/signin/page.tsx -----
+"use client";
+import React from "react";
+import SignInButton from "@/components/SignInButton";
+
+export default function SignInPage(): JSX.Element {
+  return (
+    <div className="mx-auto max-w-md px-4 pt-24 text-white">
+      <h1 className="text-3xl font-bold">Sign in</h1>
+      <p className="mt-2 opacity-80">Use Google to continue.</p>
+      <div className="mt-6">
+        <SignInButton next="/onboarding" />
+      </div>
+    </div>
+  );
+}
+
+
+----- FILE: src/app/summary/page.tsx -----
+// src/app/summary/page.tsx
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+type Answers = Record<string, string>;
+
+export default function SummaryPage() {
+  const [answers, setAnswers] = useState<Answers>({});
+  const [ai, setAi] = useState<string>("");
+  const [busy, setBusy] = useState(false);
+
+  // Collect all days (we only used day 1 in this drop)
+  const allKeys = useMemo(() => {
+    if (typeof window === "undefined") return [];
+    return Object.keys(localStorage).filter((k) =>
+      k.startsWith("trial_answers_day_")
+    );
+  }, []);
+
+  useEffect(() => {
+    try {
+      const merged: Answers = {};
+      for (const k of allKeys) {
+        const raw = localStorage.getItem(k);
+        if (raw) Object.assign(merged, JSON.parse(raw));
+      }
+      setAnswers(merged);
+    } catch {}
+  }, [allKeys]);
+
+  const mcqEntries = Object.entries(answers).filter(([k]) => k.startsWith("q"));
+  const frqEntries = Object.entries(answers).filter(([k]) => k.startsWith("t"));
+
+  async function summarize() {
+    setBusy(true);
+    setAi("");
+    const prompt = [
+      "You are summarizing a short self-assessment.",
+      "The user answered 30 Likert questions (q1..q30) and 4 free-response (t1..t4).",
+      "Provide a crisp, motivating summary in 6-8 bullets:",
+      "- The user's apparent strengths",
+      "- One realistic habit to begin this week",
+      "- A 30-day focus theme",
+      "Answers:",
+      JSON.stringify(answers, null, 2),
+    ].join("\n");
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: prompt, system: "Be concise, clear, and supportive." }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setAi(data?.reply || "(no AI summary)");
+    } catch {
+      setAi("(error getting AI summary)");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl p-6 space-y-6">
+      <h1 className="text-3xl font-bold">Your Summary</h1>
+
+      <section className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="font-semibold mb-2">Multiple choice snapshot</div>
+        <div className="text-white/80 text-sm">
+          Answered {mcqEntries.length} of 30
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="font-semibold mb-2">Your notes</div>
+        <ul className="list-disc pl-5 space-y-1">
+          {frqEntries.length === 0 && (
+            <li className="text-white/70">No free responses yet.</li>
+          )}
+          {frqEntries.map(([k, v]) => (
+            <li key={k} className="text-white/90">
+              <span className="opacity-70 mr-2">{k.toUpperCase()}:</span>
+              {v}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <div className="flex gap-3">
+        <button
+          disabled={busy}
+          onClick={summarize}
+          className="rounded-2xl px-4 py-3 bg-black text-white font-semibold disabled:opacity-50"
+        >
+          {busy ? "Summarizingâ€¦" : "Get AI summary"}
+        </button>
+      </div>
+
+      {ai && (
+        <section className="rounded-2xl border border-white/15 bg-white/5 p-4 whitespace-pre-wrap">
+          {ai}
+        </section>
+      )}
+    </div>
+  );
+}
+
+
+----- FILE: src/app/trial/done/page.tsx -----
+// src/app/trial/done/page.tsx
+"use client";
+
+import Link from "next/link";
+
+export default function TrialDonePage() {
+  return (
+    <div className="mx-auto max-w-2xl p-6 space-y-6">
+      <h1 className="text-3xl font-bold">Nice work ??</h1>
+      <p className="text-white/80">
+        Your answers are saved locally. View your personalized summary next.
+      </p>
+
+      <div className="flex gap-3">
+        <Link
+          href="/summary"
+          className="rounded-2xl px-4 py-3 bg-black text-white font-semibold"
+        >
+          View Summary
+        </Link>
+        <Link
+          href="/chat"
+          className="rounded-2xl px-4 py-3 bg-white text-gray-900 font-semibold"
+        >
+          Chat about it
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+
+----- FILE: src/components/AuthButton.tsx -----
+'use client';
+
+import { useEffect, useState } from "react";
+import { createSupabaseClient } from "@/lib/supabase/client";
+
+export default function AuthButton() {
+  const supabase = createSupabaseClient();
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setEmail(s?.user?.email ?? null);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [supabase]);
+
+  if (!email) {
+    return (
+      <a href="/login" className="text-sm rounded-lg px-3 py-1.5 border border-white/15 hover:bg-white/10">
+        Sign in
+      </a>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-sm opacity-80">{email}</span>
+      <button
+        onClick={() => supabase.auth.signOut().then(() => (window.location.href = "/"))}
+        className="text-sm rounded-lg px-3 py-1.5 border border-white/15 hover:bg-white/10"
+      >
+        Sign out
+      </button>
+    </div>
+  );
+}
+
+
+----- FILE: src/components/Header.tsx -----
+import Link from "next/link";
+import { supabaseServer } from "@/lib/supabase/server";
+
+export default async function Header() {
+  const supabase = supabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  return (
+    <header className="w-full border-b">
+      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+        <Link href="/" className="text-lg font-semibold">KnowYourself.ai</Link>
+        <nav className="flex items-center gap-3">
+          <Link href="/onboarding" className="px-3 py-2 rounded-xl hover:bg-gray-100">Onboarding</Link>
+          <Link href="/quiz" className="px-3 py-2 rounded-xl hover:bg-gray-100">Quiz</Link>
+          {user ? (
+            <Link href="/account" className="px-3 py-2 rounded-xl bg-black text-white">Profile</Link>
+          ) : (
+            <Link href="/signin" className="px-3 py-2 rounded-xl bg-black text-white">Sign in</Link>
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+
+----- FILE: src/components/SignInButton.tsx -----
+"use client";
+import { createSupabaseClient } from "@/lib/supabase/client";
+
+export default function SignInButton(
+  { next = "/onboarding", className = "", size = "sm" as "sm" | "md" }
+) {
+  const supabase = createSupabaseClient();
+
+  async function onClick() {
+    const origin = window.location.origin;
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}` }
+    });
+  }
+
+  const sizeClasses = size === "sm"
+    ? "px-2.5 py-1.5 text-sm rounded-xl"
+    : "px-3 py-2 text-base rounded-2xl";
+
+  return (
+    <button
+      onClick={onClick}
+      className={`${sizeClasses} bg-white text-gray-900 font-semibold shadow hover:opacity-90 ${className}`}
+    >
+      Sign in with Google
+    </button>
+  );
+}
+
+
+----- FILE: src/components/SignOutButton.tsx -----
+"use client";
+
+import { createSupabaseClient } from "@/lib/supabase/client";
+
+export default function SignOutButton() {
+  const supabase = createSupabaseClient();
+  return (
+    <button
+      onClick={async () => {
+        await supabase.auth.signOut();
+        location.reload();
+      }}
+      className="px-3 py-2 rounded-xl border"
+    >
+      Sign out
+    </button>
+  );
+}
+
+
+----- FILE: src/components/SiteHeader.tsx -----
+// src/components/SiteHeader.tsx
+import Link from "next/link";
+import { supabaseServer } from "@/lib/supabase/server";
+import SignInButton from "@/components/SignInButton";
+
+// always render fresh so auth state is correct
+export const dynamic = "force-dynamic";
+
+export default async function SiteHeader() {
+  const supabase = supabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  return (
+    <header className="w-full">
+      <div className="mx-auto max-w-6xl w-full px-3 py-2 flex items-center justify-center">
+        <nav className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+          <Link href="/" className="text-sm sm:text-base font-semibold mr-1 sm:mr-3">
+            KnowYourself.ai
+          </Link>
+
+          <Link
+            href="/onboarding"
+            className="px-2.5 py-1.5 text-sm rounded-xl hover:bg-white/10"
+          >
+            Onboarding
+          </Link>
+
+          {/* send users to the real quiz flow, not /quiz placeholder */}
+          <Link
+            href="/trial/1"
+            className="px-2.5 py-1.5 text-sm rounded-xl hover:bg-white/10"
+          >
+            Quiz
+          </Link>
+
+          {user ? (
+            <>
+              <span
+                title={user.email ?? "Signed in"}
+                className="hidden sm:inline rounded-full bg-white/10 px-2 py-1 text-xs max-w-[40vw] truncate"
+              >
+                {user.email ?? "Signed in"}
+              </span>
+              <Link
+                href="/account"
+                className="px-2.5 py-1.5 text-sm rounded-xl bg-black text-white"
+              >
+                Profile
+              </Link>
+            </>
+          ) : (
+            <SignInButton size="sm" next="/onboarding" />
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+
+----- FILE: src/components/StartQuizButton.tsx -----
+import Link from "next/link";
+export default function StartQuizButton() {
+  return (
+    <Link
+      href="/onboarding"
+      className="inline-flex items-center justify-center rounded-2xl px-6 py-3 bg-white text-gray-900 font-semibold shadow transition-all duration-150 hover:shadow-md hover:scale-[1.02] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+      aria-label="Start"
+    >
+      Start
+    </Link>
+  );
+}
+
+
+----- FILE: src/components/TopBar.old.txt -----
+"use client";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { supabaseBrowser } from "@/lib/supabase-browser";
+
+export default function TopBar() {
+  const sb = supabaseBrowser();
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    sb.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => {
+      setEmail(s?.user?.email ?? null);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [sb]);
+
+  return (
+    <header className="w-full">
+      <nav className="mx-auto max-w-5xl px-4 pt-4 flex items-center justify-between">
+        {/* LEFT: email or sign-in */}
+        <div className="min-h-[36px] flex items-center">
+          {email ? (
+            <Link
+              href="/account"
+              className="text-sm rounded-lg px-3 py-1.5 border border-white/15 hover:bg-white/10 text-white/90"
+            >
+              {email}
+            </Link>
+          ) : (
+            <Link
+              href="/signin"
+              className="text-sm rounded-lg px-3 py-1.5 border border-white/15 hover:bg-white/10 text-white/90"
+            >
+              Sign in
+            </Link>
+          )}
+        </div>
+
+        {/* CENTER: brand (non-clickable) */}
+        <div aria-hidden className="text-white/80 font-semibold tracking-wide text-sm">
+          knowyourself.ai
+        </div>
+
+        {/* RIGHT: quick links */}
+        <div className="flex gap-2">
+          <Link
+            href="/chat"
+            className="text-sm rounded-lg px-3 py-1.5 border border-white/15 hover:bg-white/10 text-white/90"
+          >
+            Chat
+          </Link>
+          <Link
+            href="/trial/1"
+            className="text-sm rounded-lg px-3 py-1.5 border border-white/15 hover:bg-white/10 text-white/90"
+          >
+            Trial
+          </Link>
+        </div>
+      </nav>
+    </header>
+  );
+}
+
+
+----- FILE: src/components/TopNav.old.txt -----
+"use client";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { supabaseBrowser } from "@/lib/supabase-browser";
+
+export default function TopNav() {
+  const sb = supabaseBrowser();
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    sb.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => {
+      setEmail(s?.user?.email ?? null);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [sb]);
+
+  return (
+    <header className="fixed inset-x-0 top-0 z-50">
+      <nav className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between text-white">
+        {/* LEFT: email (pill) + Profile button */}
+        <div className="flex items-center gap-2">
+          {email ? (
+            <>
+              <span className="hidden sm:inline rounded-full bg-white/10 px-3 py-1.5 text-sm select-none">
+                {email}
+              </span>
+              <Link
+                href="/profile"
+                className="inline-flex items-center justify-center rounded-2xl px-3 py-1.5 bg-white text-gray-900 text-sm font-semibold shadow transition hover:scale-[1.03] active:scale-95"
+              >
+                Profile
+              </Link>
+            </>
+          ) : (
+            <span className="text-sm/6 opacity-80"> </span>
+          )}
+        </div>
+
+        {/* RIGHT: actions */}
+        <div className="flex items-center gap-2">
+          {email ? (
+            <>
+              <Link
+                href="/chat"
+                className="inline-flex items-center justify-center rounded-2xl px-3 py-1.5 bg-white text-gray-900 text-sm font-semibold shadow transition hover:scale-[1.03] active:scale-95"
+              >
+                Chat
+              </Link>
+              <Link
+                href="/trial/1"
+                className="inline-flex items-center justify-center rounded-2xl px-3 py-1.5 bg-white/0 ring-1 ring-white/30 text-white text-sm font-semibold shadow transition hover:bg-white/10"
+              >
+                Trial
+              </Link>
+              <button
+                onClick={() =>
+                  sb.auth.signOut().then(() => (window.location.href = "/"))
+                }
+                className="inline-flex items-center justify-center rounded-2xl px-3 py-1.5 bg-white/0 ring-1 ring-white/30 text-white text-sm font-semibold transition hover:bg-white/10"
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/signin?next=/onboarding"
+              className="inline-flex items-center justify-center rounded-2xl px-3 py-1.5 bg-white text-gray-900 text-sm font-semibold shadow transition hover:scale-[1.03] active:scale-95"
+            >
+              Sign in
+            </Link>
+          )}
+        </div>
+      </nav>
+    </header>
+  );
+}
+
+
+----- FILE: src/lib/auth-helpers.ts -----
+// lib/auth-helpers.ts
+import { redirect } from 'next/navigation';
+import { supabaseServer } from './supabase-server';
+
+export async function requireSessionOrRedirect(path = '/signin') {
+  const sb = supabaseServer();
+  const { data } = await sb.auth.getSession();
+  if (!data.session) redirect(path);
+  return data.session;
+}
+
+
+----- FILE: src/lib/daily/questions.ts -----
+export type Q = { id: string; text: string; tags: string[] };
+export const DAILY_QUESTIONS: Q[] = [
+  { id:"focus-1", text:"Whatâ€™s the one thing that would make today a win?", tags:["focus","planning"] },
+  { id:"blocker-1", text:"Any blockers you can remove in 10 minutes or less?", tags:["blockers","timeboxing"] },
+  { id:"gratitude-1", text:"Name one thing youâ€™re grateful for today.", tags:["gratitude","mood"] },
+  { id:"risk-1", text:"What small risk would move your goal forward?", tags:["courage","goal"] },
+  { id:"energy-1", text:"Whatâ€™s your energy level (1â€“5) and why?", tags:["energy","reflection"] },
+];
+
+export function pickNextQuestion(doneIds: string[] = []): Q {
+  const pool = DAILY_QUESTIONS.filter(q => !doneIds.includes(q.id));
+  return (pool.length ? pool : DAILY_QUESTIONS)[Math.floor(Math.random() * (pool.length ? pool.length : DAILY_QUESTIONS.length))];
+}
+
+
+----- FILE: src/lib/onboarding/questions.ts -----
+export type Big5Key = "openness"|"conscientiousness"|"extraversion"|"agreeableness"|"neuroticism";
+
+export const valueOptions = [
+  "Growth","Health","Family","Freedom","Wealth",
+  "Learning","Creativity","Stability","Adventure","Service",
+] as const;
+
+export const onboardingTemplate = {
+  text: {
+    high: "Recent high â€” what went right?",
+    low: "Recent low â€” whatâ€™s been hard?",
+    goal: "Big goal (next 3â€“6 months)",
+    strengths: "Your strengths (short, comma-separated)",
+  },
+  values: valueOptions,
+  big5Defaults: { openness:3, conscientiousness:3, extraversion:3, agreeableness:3, neuroticism:3 } as Record<Big5Key,number>,
+};
+
+
+----- FILE: src/lib/profile.ts -----
+export type Profile = {
+  // old fields (keep them)
+  high?: string; low?: string; goal?: string; strengths?: string;
+  values?: string[]; big5?: Record<string, number>;
+
+  // new profile fields
+  displayName?: string;
+  avatar?: string;       // emoji or URL later
+};
+
+const KEY = "ky_profile";
+
+export function saveProfile(p: Profile) {
+  try { localStorage.setItem(KEY, JSON.stringify(p)); } catch {}
+}
+
+export function loadProfile(): Profile | undefined {
+  try {
+    const s = localStorage.getItem(KEY);
+    return s ? JSON.parse(s) : undefined;
+  } catch { return undefined; }
+}
+
+
+----- FILE: src/lib/questions.ts -----
+export type MCQItem = { id: string; q: string; options: string[] };
+
+export const MCQ: MCQItem[] = [
+  { id: "q01", q: "I get energy from:", options: ["Being around others", "Quiet solo time"] },
+  { id: "q02", q: "My default decision style:", options: ["Go with gut", "Analyze pros/cons", "Ask others", "Delay deciding"] },
+  { id: "q03", q: "Mornings or nights?", options: ["Morning", "Night", "Varies"] },
+  { id: "q04", q: "Biggest current focus:", options: ["Career", "Health", "Relationships", "Money", "Learning", "Mental clarity"] },
+  { id: "q05", q: "When stressed I tend to:", options: ["Overwork", "Avoid", "Vent", "Plan it out"] },
+  { id: "q06", q: "Best way to hold me accountable:", options: ["Public commitment", "Buddy", "App reminders", "Self-tracking"] },
+  { id: "q07", q: "Preferred planning horizon:", options: ["Day", "Week", "Month", "Quarter+"] },
+  { id: "q08", q: "My work style:", options: ["Sprints", "Steady daily cadence", "Last-minute rush"] },
+  { id: "q09", q: "Attention lately feels:", options: ["Laser", "Scattered", "Depends", "Not sure"] },
+  { id: "q10", q: "Sleep quality lately:", options: ["Great", "Okay", "Rough"] },
+  { id: "q11", q: "Exercise frequency:", options: ["Most days", "1–3×/week", "Rarely"] },
+  { id: "q12", q: "I learn best by:", options: ["Doing", "Reading", "Watching", "Explaining"] },
+  { id: "q13", q: "Money mindset now:", options: ["Confident", "Uneasy", "Avoiding", "Rebuilding"] },
+  { id: "q14", q: "Relationship energy:", options: ["Connected", "Lonely", "Drained", "Mixed"] },
+  { id: "q15", q: "Current pace feels:", options: ["Too fast", "About right", "Too slow"] },
+  { id: "q16", q: "Inbox/notifications:", options: ["Under control", "Overflowing", "I ignore them"] },
+  { id: "q17", q: "Biggest blocker today:", options: ["Time", "Energy", "Clarity", "Fear", "Other"] },
+  { id: "q18", q: "Frustration tolerance:", options: ["High", "Medium", "Low"] },
+  { id: "q19", q: "Perfectionism:", options: ["Strong", "Sometimes", "Rarely"] },
+  { id: "q20", q: "Comfort with risk:", options: ["High", "Medium", "Low"] },
+  { id: "q21", q: "Social media use:", options: ["Minimal", "Moderate", "Heavy"] },
+  { id: "q22", q: "Focus environment:", options: ["Silence", "Cafe hum", "Music", "Doesn't matter"] },
+  { id: "q23", q: "Task size preference:", options: ["Small quick wins", "One big chunk"] },
+  { id: "q24", q: "Habits consistency:", options: ["Very", "So-so", "Inconsistent"] },
+  { id: "q25", q: "Breaks during work:", options: ["Frequent short", "Few long", "Rarely break"] },
+  { id: "q26", q: "Food choices lately:", options: ["Nutritious", "Mixed", "Convenience"] },
+  { id: "q27", q: "Alcohol/substances:", options: ["None/minimal", "Moderate", "Frequent"] },
+  { id: "q28", q: "Learning time weekly:", options: ["<1h", "1–3h", "3–7h", "7h+"] },
+  { id: "q29", q: "Goal clarity today:", options: ["Crystal", "Fuzzy", "Unsure"] },
+  { id: "q30", q: "Biggest win last week:", options: ["Progress", "Learning", "Connection", "Health", "Money"] },
+];
+
+export function getAnswers(): Record<string, number> {
+  try { return JSON.parse(localStorage.getItem("ky_mcq") || "{}"); } catch { return {}; }
+}
+export function setAnswer(id: string, idx: number) {
+  const a = getAnswers();
+  a[id] = idx;
+  try { localStorage.setItem("ky_mcq", JSON.stringify(a)); } catch {}
+}
+export function pickRandomUnanswered(): MCQItem | undefined {
+  const a = getAnswers();
+  const unanswered = MCQ.filter(x => !(x.id in a));
+  if (!unanswered.length) return undefined;
+  const i = Math.floor(Math.random() * unanswered.length);
+  return unanswered[i];
+}
+
+
+----- FILE: src/lib/style.ts -----
+import type { Tone } from "./tone";
+
+export function styleFromTone(t: Tone) {
+  // sliders 0..1 -> weights
+  const warmth = 0.4 + t.politeness*0.4 - t.frustration*0.2;
+  const directness = 0.5 + t.frustration*0.3;
+  const playfulness = 0.2 + t.energy*0.5;
+
+  const temperature = 0.6 + t.energy*0.2 - t.frustration*0.1;
+
+  const persona =
+    `You are a helpful coach. 
+     Warmth: ${warmth.toFixed(2)}, Directness: ${directness.toFixed(2)}, Playfulness: ${playfulness.toFixed(2)}.
+     If frustration is high, acknowledge it briefly, stay calm, and be extra concrete.
+     Mirror the user's energy (slightly), never mock.`;
+
+  return { temperature: Math.max(0.2, Math.min(1, temperature)), persona };
+}
+
+
+----- FILE: src/lib/supabase-browser.ts -----
+"use client";
+import { createSupabaseClient } from "./supabase/client";
+export const supabaseBrowser = createSupabaseClient;
+
+----- FILE: src/lib/supabase-server.ts -----
+// src/lib/supabase-server.ts
+import { cookies } from 'next/headers';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+
+export function supabaseServer() {
+  const cookieStore = cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options?: CookieOptions) {
+          cookieStore.set({ name, value, ...(options ?? {}) });
+        },
+        remove(name: string, options?: CookieOptions) {
+          cookieStore.set({ name, value: '', ...(options ?? {}) });
+        },
+      },
+    }
+  );
+}
+
+
+----- FILE: src/lib/supabase/client.ts -----
+// src/lib/supabase/client.ts
+import { createBrowserClient } from "@supabase/ssr";
+
+export function createSupabaseClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+
+// keep this alias in case other files used it earlier
+export const supabaseBrowser = createSupabaseClient;
+
+
+----- FILE: src/lib/supabase/server.ts -----
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+
+export const supabaseServer = () => {
+  const store = cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name) {
+          return store.get(name)?.value;
+        },
+        set(name, value, options) {
+          store.set({ name, value, ...options });
+        },
+        remove(name, options) {
+          store.set({ name, value: "", ...options });
+        },
+      },
+    }
+  );
+};
+
+
+----- FILE: src/lib/supabaseAdmin.ts -----
+// src/lib/supabaseAdmin.ts
+import { createClient } from '@supabase/supabase-js'
+
+// Server-only Supabase client (SERVICE ROLE). Never import this in client components.
+export const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+  process.env.SUPABASE_SERVICE_ROLE as string
+)
+
+
+----- FILE: src/lib/supabaseClient.js -----
+// src/lib/supabaseClient.js
+import { createClient } from "@supabase/supabase-js";
+
+// Create the browser client *when called*, not at import time
+export function getSupabaseBrowser() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Avoid hard crashes during build; warn instead (client will rehydrate with real envs)
+  if (!url || !anon) {
+    if (typeof window !== "undefined") {
+      console.warn("[KY] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
+    }
+    // Return a harmless placeholder to avoid throwing during bundling
+    return createClient("https://placeholder.supabase.co", "public-anon-key");
+  }
+
+  return createClient(url, anon);
+}
+
+
+----- FILE: src/lib/tone.ts -----
+export type Tone = { politeness:number; frustration:number; energy:number };
+
+export function analyzeTone(input: string): Tone {
+  const txt = input.toLowerCase();
+  const please = (txt.match(/\bplease\b/g) || []).length;
+  const thanks = (txt.match(/\bthanks|\bthank you\b/g) || []).length;
+  const swears = (txt.match(/\b(fuck|shit|damn|wtf)\b/g) || []).length;
+  const excls = (txt.match(/!/g) || []).length;
+
+  const politeness = Math.min(1, (please + thanks) / 2);
+  const frustration = Math.min(1, (swears + (excls>2 ? 1 : 0)) / 3);
+  const energy = Math.min(1, (excls/3));
+
+  return { politeness, frustration, energy };
+}
+
+
+----- FILE: src/lib/trialFlow.ts -----
+// lib/trialFlow.ts
+export type Baseline = {
+  energy: number;
+  stability: number;
+  finances: number;
+  confidence: number;
+};
+
+export type MicroGoal = { id: string; text: string };
+
+export type DayPlan = {
+  day: number;
+  mood: boolean;
+  freePrompt: string;
+  aiPrompt: string;
+  microGoalsHint?: string;
+};
+
+export const TRIAL_DAYS = 30 as const;
+
+export const DAYS: DayPlan[] = [
+  { day: 1, mood: true,
+    freePrompt: "What’s one honest thing about today?",
+    aiPrompt: "Name one thing that’s bugging you right now. Keep it simple.",
+    microGoalsHint: "Start tiny. We’ll keep them easy to win." },
+  { day: 2, mood: true,
+    freePrompt: "What gave you real energy in the last 24 hours?",
+    aiPrompt: "When motivation dips, what small move helps you get going?" },
+  { day: 3, mood: true,
+    freePrompt: "Name one tiny win from today (even if it feels small).",
+    aiPrompt: "What’s different on your better days?" },
+  { day: 4, mood: true,
+    freePrompt: "What did you put off — and what did you do instead?",
+    aiPrompt: "If a close friend gave you 3 honest suggestions, what would they be?" },
+  { day: 5, mood: true,
+    freePrompt: "What did you do today that actually helped?",
+    aiPrompt: "Think of a time you felt overwhelmed. What did you do next, step by step?" },
+  { day: 6, mood: true,
+    freePrompt: "What feels noisy in your head right now?",
+    aiPrompt: "What do you wish people understood about you?" },
+  { day: 7, mood: true,
+    freePrompt: "Where did you feel most like yourself today?",
+    aiPrompt: "If tomorrow started clean, what would you do first and why?" },
+  { day: 8, mood: true,
+    freePrompt: "What’s one tension you keep ignoring?",
+    aiPrompt: "Describe the last time you gave up early. What would sticking with it look like?" },
+  { day: 9, mood: true,
+    freePrompt: "What gave you momentum today?",
+    aiPrompt: "What pattern are you starting to see after a week of check-ins?" },
+  { day:10, mood: true,
+    freePrompt: "What’s different about you today vs Day 1?",
+    aiPrompt: "If you could only improve one habit the next 20 days, which one and how will you protect it?" },
+
+  { day:11, mood: true,
+    freePrompt: "What did you say no to today?",
+    aiPrompt: "Where are you over-committed? Name one thing to drop or defer." },
+  { day:12, mood: true,
+    freePrompt: "Who made your day better? How?",
+    aiPrompt: "What relationship will you invest in this month and what’s the smallest step?" },
+  { day:13, mood: true,
+    freePrompt: "What almost derailed you today?",
+    aiPrompt: "What’s your reset routine when things go sideways?" },
+  { day:14, mood: true,
+    freePrompt: "What did you learn about your attention today?",
+    aiPrompt: "What environment helps you focus? Be specific (time/place/tools)." },
+  { day:15, mood: true,
+    freePrompt: "Where did you feel proud today?",
+    aiPrompt: "What skill would compound most if improved 10%?" },
+  { day:16, mood: true,
+    freePrompt: "What money decision felt smart or dumb recently?",
+    aiPrompt: "What’s one low-friction change to improve finances this week?" },
+  { day:17, mood: true,
+    freePrompt: "If today had a headline, what would it be?",
+    aiPrompt: "What belief about yourself is a bit outdated now?" },
+  { day:18, mood: true,
+    freePrompt: "What did you do for your body today?",
+    aiPrompt: "When energy dips, what cue shows up first? What helps fastest?" },
+  { day:19, mood: true,
+    freePrompt: "What did you avoid and why?",
+    aiPrompt: "What’s the cost of that avoidance 30 days out?" },
+  { day:20, mood: true,
+    freePrompt: "What surprised you today?",
+    aiPrompt: "Which part of your plan is working better than expected — why?" },
+
+  { day:21, mood: true,
+    freePrompt: "Where did you feel confident today?",
+    aiPrompt: "What action reliably boosts your confidence 5–10%?" },
+  { day:22, mood: true,
+    freePrompt: "What tiny kindness showed up today?",
+    aiPrompt: "How does generosity show up when you’re stressed?" },
+  { day:23, mood: true,
+    freePrompt: "What did you overthink today?",
+    aiPrompt: "How do you decide something is good enough to ship?" },
+  { day:24, mood: true,
+    freePrompt: "What routine saved you time or energy?",
+    aiPrompt: "Where could a 5-minute routine remove daily friction?" },
+  { day:25, mood: true,
+    freePrompt: "What feedback stuck with you?",
+    aiPrompt: "If you ran a tiny 1-day experiment tomorrow, what would you test?" },
+  { day:26, mood: true,
+    freePrompt: "What boundary did you hold (or miss)?",
+    aiPrompt: "Where do you need one clearer stop sign this week?" },
+  { day:27, mood: true,
+    freePrompt: "What was the best use of your time today?",
+    aiPrompt: "If you had 2 fewer hours each day, what would you cut first?" },
+  { day:28, mood: true,
+    freePrompt: "What did you communicate clearly?",
+    aiPrompt: "What message do you owe someone? Draft a sentence." },
+  { day:29, mood: true,
+    freePrompt: "What would make tomorrow 10% better?",
+    aiPrompt: "Choose one lever to pull tomorrow and define done in one line." },
+  { day:30, mood: true,
+    freePrompt: "Looking back 30 days — what actually changed?",
+    aiPrompt: "What’s the one habit you’ll keep for the next 60 days, and how will you protect it?" },
+];
+
+// micro-goals
+export function pickMicroGoals(seed: { intake?: string; lastFree?: string; lastMood?: number }): MicroGoal[] {
+  const hints = (seed.intake || seed.lastFree || "").toLowerCase();
+  const goals: MicroGoal[] = [];
+  if (hints.includes("sleep") || hints.includes("tired")) goals.push({ id: "sleep", text: "In bed 30 mins earlier." });
+  if (hints.includes("anxiety") || hints.includes("overwhelmed")) goals.push({ id: "reset", text: "2-min box-breath after lunch." });
+  if (hints.includes("focus") || hints.includes("adhd") || hints.includes("scatter")) goals.push({ id: "focus", text: "One 15-min deep-focus block." });
+  if (hints.includes("money") || hints.includes("finance")) goals.push({ id: "money", text: "5-min money review at 6pm." });
+  if (hints.includes("drink") || hints.includes("alcohol")) goals.push({ id: "hydrate", text: "3 glasses of water by 2pm." });
+  if (!goals.length) goals.push({ id: "wins", text: "Write 3 tiny wins before bed." });
+  return goals.slice(0, 3);
+}
+
+
+----- FILE: tailwind.config.js -----
+// Tailwind v4 config (content key not needed)
+module.exports = {
+  theme: { extend: {} },
+  plugins: [],
+};
+
+
+----- FILE: tsconfig.json -----
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+
+
