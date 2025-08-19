@@ -105,24 +105,35 @@ export default function TopBar() {
 
       {/* centered nav */}
       <nav className="relative z-10 mx-auto mt-2 flex items-center gap-4">
-        {!showSummary ? (
-          <>
-            <Link href="/onboarding" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Onboarding</Link>
-            <Link href="/trial/1" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Quiz</Link>
-          </>
-        ) : (
-          <>
-            <Link href="/summary" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Summary</Link>
-            <Link href="/boost" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Boost</Link>
-          </>
-        )}
-        <Link href="/chat" className="rounded-md px-3 py-2 text-sm font-medium bg-black text-white border border-white/20 shadow-sm">Chat</Link>
-        {!userId && (
-          <button onClick={signIn} className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">
-            Sign in with Google
-          </button>
-        )}
-      </nav>
+  {/* Show Badges once onboarding is complete */}
+  {profile?.onboarded && (
+    <Link href="/badges" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">
+      Badges
+    </Link>
+  )}
+
+  {/* Before both done → Onboarding + Quiz */}
+  {!showSummary ? (
+    <>
+      <Link href="/onboarding" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Onboarding</Link>
+      <Link href="/trial/1" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Quiz</Link>
+    </>
+  ) : (
+    <>
+      <Link href="/summary" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Summary</Link>
+      <Link href="/boost" className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">Boost</Link>
+    </>
+  )}
+
+  <Link href="/chat" className="rounded-md px-3 py-2 text-sm font-medium bg-black text-white border border-white/20 shadow-sm">Chat</Link>
+
+  {!userId && (
+    <button onClick={signIn} className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm">
+      Sign in with Google
+    </button>
+  )}
+</nav>
+
 
       {/* avatar + name button, only when signed in */}
       {userId && (
