@@ -56,7 +56,7 @@ export default function TopBar() {
   };
 
   return (
-    // thicker top bar
+    // keep the thicker bar; buttons get a small top margin
     <header className="relative h-20 flex items-center px-4">
       {/* grey strip only over sidebar width */}
       <div
@@ -64,8 +64,8 @@ export default function TopBar() {
         aria-hidden
       />
 
-      {/* centered nav buttons */}
-      <nav className="relative z-10 mx-auto flex items-center gap-4">
+      {/* centered nav buttons with a tiny gap from the top */}
+      <nav className="relative z-10 mx-auto mt-2 flex items-center gap-4">
         <Link
           href="/onboarding"
           className="rounded-md px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
@@ -90,12 +90,12 @@ export default function TopBar() {
         )}
       </nav>
 
-      {/* profile button, slightly down and inward */}
+      {/* profile button, also nudged down a bit */}
       {userId && (
-        <div className="relative z-10 ml-auto pr-2">
+        <div className="relative z-10 ml-auto pr-2 mt-2">
           <button
             onClick={() => setOpen(true)}
-            className="rounded-full h-10 px-4 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm translate-y-[4px]"
+            className="rounded-full h-10 px-4 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 shadow-sm"
             aria-label="Profile"
           >
             Profile
